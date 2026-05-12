@@ -110,6 +110,23 @@ function closeOverlay(id) {
   }, 300); // Wait for transition
 }
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.remove('show');
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
 // ─── League Picker ────────────────────────────────────────────────────────────
 async function loadLeagues() {
   if (leagues.length) return leagues;
@@ -129,13 +146,19 @@ function toggleLeagueDropdown(open) {
       list.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
       loadLeagues().then(leaguesList => {
         list.innerHTML = leaguesList.map(l => `
-          <div class="league-dropdown-item" data-id="${l.id}">
+          <div class="league-dropdown-item ${l.id === 'ligaplus-u18' ? 'disabled' : ''}" data-id="${l.id}">
             <img src="${l.logo}" alt="${l.name}" loading="lazy" onerror="this.style.opacity='.15'">
-            <span>${l.name}</span>
+            <span>${l.name}${l.id === 'ligaplus-u18' ? ' <span style="font-size:10px;color:var(--text-4)">(bugged)</span>' : ''}</span>
           </div>`).join('');
         
         list.querySelectorAll('.league-dropdown-item').forEach(item => {
-          item.addEventListener('click', () => selectLeague(item.dataset.id));
+          item.addEventListener('click', () => {
+            if (item.classList.contains('disabled')) {
+              showToast('This tournament is currently bugged.');
+              return;
+            }
+            selectLeague(item.dataset.id);
+          });
         });
       }).catch(() => {
         list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3)">Failed to load</div>';
@@ -235,25 +258,116 @@ async function loadHome() {
     ]);
     let html = '';
 
-    // Quick Scores Strip - horizontal scroll of recent/live matches
-    const quickScores = results.slice(0, 12);
-    if (quickScores.length > 0) {
-      html += '<div class="quick-scores">';
-      html += quickScores.map(g => {
-        const isLive = g.status === 'live';
-        const isFinal = g.status === 'final';
-        const statusClass = isLive ? 'live' : '';
-        const statusText = isLive ? 'LIVE' : isFinal ? 'FT' : fmtTime(g.date);
-        return `
-          <div class="qs-chip ${statusClass}" data-game-id="${g.id}">
-            <img class="qs-chip-logo" src="${g.home.logo}" alt="" onerror="this.style.opacity='.2'">
-            <span class="qs-chip-teams">${shortName(g.home.name)}<span class="qs-chip-sep">-</span>${shortName(g.away.name)}</span>
-            <span class="qs-chip-score">${g.home.score ?? '—'} : ${g.away.score ?? '—'}</span>
-            <span class="qs-status">${statusText}</span>
-          </div>`;
-      }).join('');
-      html += '</div>';
+    // ======= News content =======
+    const newsHtml = homeData.latestNews?.length 
+      ? homeData.latestNews.map(n => `
+          <div class="news-card fade-item" data-news-id="${n.id}" style="cursor:pointer">
+            <img class="news-thumb" src="${n.image}" loading="lazy" alt="" onerror="this.style.opacity='.2'">
+            <div class="news-body">
+              <div class="news-title">${n.title}</div>
+              <div class="news-date">${fmtDate(n.date)}</div>
+            </div>
+          </div>`).join('')
+      : '<div class="empty-state"><div class="empty-msg">No news available</div></div>';
+    
+    // ======= Best Team content =======
+    let bestTeamHtml = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+    try {
+      const [allPlayers, recentGames] = await Promise.all([
+        api(`/api/leagues/${league}/players`),
+        api(`/api/leagues/${league}/results`).catch(() => []),
+      ]);
+      
+      if (allPlayers?.length && recentGames?.length) {
+        const gameIds = recentGames.slice(0, 15).map(g => g.id);
+        const gameStats = await Promise.all(
+          gameIds.map(id => api(`/api/games/${id}`).catch(() => null))
+        );
+        
+        const playerRatings = new Map();
+        const playerIdMap = new Map();
+        const gkFromGames = new Map();
+        
+        for (const game of gameStats.filter(Boolean)) {
+          const stats = game.playerStatistics ?? [];
+          for (const p of stats) {
+            if (p.position === 'POR' && p.playerId && !gkFromGames.has(p.playerId)) {
+              gkFromGames.set(p.playerId, {
+                id: p.playerId,
+                firstName: p.firstName || '',
+                lastName: p.lastName || '',
+                position: 'Portero',
+                points: 0,
+                gamesPlayed: 0
+              });
+            }
+            let key = p.playerId ? String(p.playerId) : null;
+            const nameKey = p.firstName && p.lastName 
+              ? `${p.firstName.toLowerCase().trim()}_${p.lastName.toLowerCase().trim()}` 
+              : null;
+            if (nameKey && !playerIdMap.has(nameKey)) playerIdMap.set(nameKey, key);
+            if (key) {
+              if (!playerRatings.has(key)) playerRatings.set(key, []);
+              const rating = ptsToRating(p.points);
+              if (rating) {
+                const r = parseFloat(rating);
+                if (r >= 5.0 && r <= 9.9) playerRatings.get(key).push(r);
+              }
+            }
+          }
+        }
+        
+        for (const p of allPlayers) {
+          const nameKey = `${p.firstName?.toLowerCase().trim()}_${p.lastName?.toLowerCase().trim()}`;
+          if (playerIdMap.has(nameKey) && !playerRatings.has(String(p.id))) {
+            const originalId = playerIdMap.get(nameKey);
+            if (originalId && playerRatings.has(originalId)) playerRatings.set(String(p.id), playerRatings.get(originalId));
+          }
+        }
+        
+        for (const [pid, gk] of gkFromGames) {
+          if (!allPlayers.find(p => String(p.id) === String(pid))) allPlayers.push(gk);
+        }
+        
+        const getMedianRating = (ratings) => {
+          if (!ratings || ratings.length < 2) return null;
+          const sorted = [...ratings].slice().sort((a, b) => a - b);
+          const len = sorted.length;
+          const mid = Math.floor(len / 2);
+          return len % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+        };
+        
+        const playersWithMedian = [];
+        for (const p of allPlayers) {
+          const ratings = playerRatings.get(String(p.id));
+          const median = getMedianRating(ratings);
+          if (median !== null) playersWithMedian.push({ ...p, medianRating: median });
+        }
+        
+        if (playersWithMedian.length) {
+          const sortedByMedian = [...playersWithMedian].sort((a, b) => b.medianRating - a.medianRating);
+          bestTeamHtml = renderBestTeam(sortedByMedian, true);
+        } else {
+          bestTeamHtml = '<div class="empty-state"><div class="empty-msg">Not enough game data</div></div>';
+        }
+      } else {
+        bestTeamHtml = '<div class="empty-state"><div class="empty-msg">No player data</div></div>';
+      }
+    } catch(e) {
+      console.error('Failed to load best team:', e);
+      bestTeamHtml = '<div class="empty-state"><div class="empty-msg">Failed to load</div></div>';
     }
+    
+    // ======= FULL PAGE 3-COLUMN LAYOUT =======
+    html += '<div class="home-page-grid">';
+    
+    // LEFT COLUMN: News
+    html += '<div class="home-page-left">';
+    html += '<div class="section"><div class="section-head"><div class="section-title">News</div></div><div class="news-wrap">' + newsHtml + '</div></div>';
+    html += '</div>';
+    
+    // CENTER COLUMN: Quick scores + Featured match + Recent results + League table
+    html += '<div class="home-page-center">';
 
     // Featured Match - Hero Section
     const featured = homeData.upcomingGames?.[0] ?? results[0];
@@ -296,8 +410,8 @@ async function loadHome() {
         </div>`;
     }
 
-    // Recent Results Strip
-    const recent = results.slice(1, 9);
+    // Recent Results Strip - show all remaining results
+    const recent = results.slice(1);
     if (recent.length > 0) {
       html += '<div class="section">';
       html += '<div class="section-head"><div class="section-title">Recent Results</div></div>';
@@ -327,24 +441,19 @@ async function loadHome() {
       html += '</div></div>';
     }
 
-    // News Section
-    if (homeData.latestNews?.length) {
-      html += '<div class="section">';
-      html += '<div class="section-head"><div class="section-title">Latest News</div></div>';
-      html += '<div class="news-wrap">';
-      html += homeData.latestNews.map(n => `
-        <div class="news-card fade-item">
-          <img class="news-thumb" src="${n.image}" loading="lazy" alt="" onerror="this.style.opacity='.2'">
-          <div class="news-body">
-            <div class="news-title">${n.title}</div>
-            <div class="news-date">${fmtDate(n.date)}</div>
-          </div>
-        </div>`).join('');
-      html += '</div></div>';
-    }
+    html += '</div>'; // close center column
+
+    // RIGHT COLUMN: Best Team
+    html += '<div class="home-page-right">';
+    html += '<div class="section"><div class="section-head"><div class="section-title">Best Team</div></div><div class="best-team-wrap">' + bestTeamHtml + '</div></div>';
+    html += '</div>';
+
+    html += '</div>'; // close home-page-grid
 
     document.getElementById('view-home').innerHTML = fadedHtml(html || '<div class="empty-state"><div class="empty-msg">Nothing to show.</div></div>');
     bindClickable('view-home');
+    bindNewsClickable('view-home');
+    bindBestTeamClickable('view-home');
     
     // Add click handler for "View all" link
     document.querySelectorAll('.section-link[data-tab]').forEach(link => {
@@ -416,17 +525,72 @@ async function loadMatchesBody() {
 async function loadStandings() {
   spin('view-standings');
   try {
-    const d = await api(`/api/leagues/${league}/standings`);
-    const groups = d.groups ?? [];
+    const [standingsData, playersData] = await Promise.all([
+      api(`/api/leagues/${league}/standings`),
+      api(`/api/leagues/${league}/players`).catch(() => []),
+    ]);
+    
+    const groups = standingsData?.groups ?? [];
     let html = '<div class="standings-wrap">';
     html += `<div class="zone-legend">
       <div class="zone-item"><div class="zone-dot" style="background:var(--champ-zone)"></div>Champion / Advance</div>
       <div class="zone-item"><div class="zone-dot" style="background:var(--promo-zone)"></div>Promotion</div>
       <div class="zone-item"><div class="zone-dot" style="background:var(--relegation)"></div>Relegation</div>
     </div>`;
+    
+    // Add league standings groups
     html += groups.length ? groups.map(g => standingsGroupHtml(g)).join('') : '<div class="empty-state"><div class="empty-msg">Standings not available.</div></div>';
+    
+    // Add Best Team as a group
+    if (playersData?.length) {
+      const sorted = [...playersData].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+      const positions = {
+        'POR': sorted.filter(p => p.position === 'Goalkeeper' || p.position === 'Portero').slice(0, 1),
+        'DEF': sorted.filter(p => p.position === 'Defender' || p.position === 'Defensa').slice(0, 5),
+        'MED': sorted.filter(p => p.position === 'Midfielder' || p.position === 'Mediocampo').slice(0, 3),
+        'DEL': sorted.filter(p => p.position === 'Forward' || p.position === 'Delantero').slice(0, 2),
+      };
+      
+      const bestTeamPlayers = [...positions.POR, ...positions.DEF, ...positions.MED, ...positions.DEL];
+      if (bestTeamPlayers.length) {
+        const bestTeamRows = bestTeamPlayers.map((p, i) => ({
+          position: i + 1,
+          team: { id: p.id, name: `${p.firstName} ${p.lastName}`, logo: playerPhoto(p.id) },
+          played: p.gamesPlayed ?? 0,
+          won: 0, drawn: 0, lost: 0,
+          goalDiff: 0,
+          points: p.points ?? 0,
+        }));
+        
+        const bestTeamGroup = { group: 'Best Team', rows: bestTeamRows };
+        html += `<div class="group-card fade-item">`;
+        html += `<div class="group-name-row" style="color:var(--accent)">Best Team</div>`;
+        html += `<div class="standings-header"><span>#</span><span>Player</span><span>GP</span><span>Pts</span></div>`;
+        bestTeamRows.forEach((r, i) => {
+          const posLabel = i < 1 ? 'GK' : i < 4 ? 'DEF' : i < 7 ? 'MID' : 'FWD';
+          html += `
+            <div class="standings-row" data-player-id="${r.team.id}">
+              <span class="s-pos">${r.position}</span>
+              <span class="s-team-cell">
+                <img class="s-logo" src="${r.team.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'" style="width:24px;height:24px;border-radius:50%">
+                <span class="s-team-name">${r.team.name ?? '—'}</span>
+                <span class="s-team-pos" style="font-size:10px;color:var(--text-3);margin-left:4px">${posLabel}</span>
+              </span>
+              <span>${r.played}</span>
+              <span class="s-pts">${r.points}</span>
+            </div>`;
+        });
+        html += '</div>';
+      }
+    }
+    
     html += '</div>';
     document.getElementById('view-standings').innerHTML = fadedHtml(html);
+    
+    // Bind player clicks in standings
+    document.getElementById('view-standings').querySelectorAll('[data-player-id]').forEach(node => {
+      node.addEventListener('click', () => openPlayerDetail(node.dataset.playerId, league));
+    });
   } catch(e) { console.error(e); fail('view-standings'); }
 }
 
@@ -549,15 +713,15 @@ function abbrevPos(pos) {
 
 // ─── GAME DETAIL ──────────────────────────────────────────────────────────────
 async function openGameDetail(gameId) {
+  const content = document.getElementById('game-detail-content');
+  content.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   openOverlay('game-overlay');
-  document.getElementById('game-detail-content').innerHTML = '<div class="spinner-wrap" style="padding:80px"><div class="spinner"></div></div>';
-  gameDetailTab = 'lineup';
   try {
     const g = await api(`/api/games/${gameId}`);
     renderGameDetailShell(g);
   } catch(e) {
     console.error(e);
-    document.getElementById('game-detail-content').innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load match.</div></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load match.</div></div>';
   }
 }
 
@@ -998,11 +1162,11 @@ function getStats(g) {
 
 // ─── PLAYER DETAIL ────────────────────────────────────────────────────────────
 async function openPlayerDetail(playerId, site) {
+  const content = document.getElementById('player-detail-content');
+  content.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   openOverlay('player-overlay');
-  const wrap = document.getElementById('player-detail-content');
-  wrap.innerHTML = '<div class="spinner-wrap" style="padding:80px"><div class="spinner"></div></div>';
-  const s = site || league;
   try {
+    const s = site || league;
     const [p, seasonArr, history, awards, records] = await Promise.all([
       api(`/api/players/${playerId}`),
       api(`/api/leagues/${s}/players/${playerId}/statistics`).catch(() => []),
@@ -1010,147 +1174,429 @@ async function openPlayerDetail(playerId, site) {
       api(`/api/leagues/${s}/players/${playerId}/awards`).catch(() => ({})),
       api(`/api/leagues/${s}/players/${playerId}/records`).catch(() => ({})),
     ]);
-
-    const ts = Array.isArray(seasonArr) ? (seasonArr[0] ?? {}) : (seasonArr ?? {});
-    const pts    = ts.points ?? 0;
-    const rating = pts > 0 ? ptsToRating(pts) : '5.0';
-    const rClass = ratingClass(rating);
-    const goals   = ts.goals ?? 0;
-    const assists = ts.assists ?? 0;
-    const games   = ts.gamesPlayed ?? 0;
-    const yellow  = ts.yellowCards ?? 0;
-    const red     = ts.redCards ?? 0;
-    const ownGoals= ts.ownGoals ?? 0;
-    const cleanSheets = ts.cleanSheets ?? 0;
-    const jersey  = ts.jerseyNumber ?? p.team.jerseyNumber ?? '';
-
-    // W/L/D from records object (keys are site names)
-    const recVals = Object.values(records ?? {});
-    const rec = recVals.length ? recVals.reduce((a, b) => ({
-      won: (a.won??0)+(b.won??0), lost: (a.lost??0)+(b.lost??0), tied: (a.tied??0)+(b.tied??0)
-    }), {won:0,lost:0,tied:0}) : null;
-
-    // Team of the week awards
-    const totw = (awards?.teamsOfTheWeek ?? []);
-
-    // Per-game history — all games sorted newest first
-    const allHistory = Array.isArray(history)
-      ? [...history].sort((a,b) => (b.matchday?.matchdayOrder??0)-(a.matchday?.matchdayOrder??0))
-      : [];
-    const gameLogs = allHistory.filter(h => h.game?.gameFinalized);
-    const upcoming = allHistory.filter(h => !h.game?.gameFinalized).slice(0, 1);
-
-    const posFullName = { DEF: 'Defender', MED: 'Midfielder', DEL: 'Forward', POR: 'Goalkeeper' };
-    const footName = { '1': 'Right', '2': 'Left', '3': 'Both' };
-
-    const logRow = (h, isPending = false) => {
-      const gPts    = h.points ?? 0;
-      const gRating = (!isPending && gPts > 0) ? ptsToRating(gPts) : isPending ? null : '5.0';
-      const gClass  = gRating ? ratingClass(gRating) : '';
-      const isHome  = h.team?.id === h.game?.teamOne?.id;
-      const opp     = isHome ? h.game?.teamTwo : h.game?.teamOne;
-      const myGoals = isHome ? h.game?.goalsTeamOne : h.game?.goalsTeamTwo;
-      const oppGoals= isHome ? h.game?.goalsTeamTwo : h.game?.goalsTeamOne;
-      const result  = isPending ? null : myGoals > oppGoals ? 'W' : myGoals < oppGoals ? 'L' : 'D';
-      const rColMap = { W: '#16a34a', L: '#ef4444', D: '#6b7280' };
-      const rBg     = { W: 'rgba(22,163,74,0.12)', L: 'rgba(239,68,68,0.12)', D: 'rgba(107,114,128,0.08)' };
-      const events  = [
-        h.goals > 0       ? `${ICON.goalSmall}${fmtMins(h.goalMinutes)}` : '',
-        h.assists > 0     ? `${ICON.assist}` : '',
-        h.yellowCards > 0 ? `${ICON.yellowCard}${fmtMins(h.yellowCardMinutes)}` : '',
-        h.redCards > 0    ? `${ICON.redCard}${fmtMins(h.redCardMinutes)}` : '',
-        h.isCleanSheet    ? `<span class="prow-event cs">CS</span>` : '',
-      ].filter(Boolean).join('');
-
-      return `
-        <div class="pd-game-row ${isPending ? 'pd-game-pending' : ''}" style="${result ? `background:${rBg[result]}` : ''}">
-          <div class="pd-game-left">
-            ${result ? `<span class="pd-game-result-pill" style="background:${rColMap[result]}">${result}</span>` : `<span class="pd-game-result-pill" style="background:#374151">—</span>`}
-            <div class="pd-game-score-block">
-              <span class="pd-game-score">${isPending ? '—' : `${myGoals}–${oppGoals}`}</span>
-              <span class="pd-game-opp">${opp?.name ?? '—'}</span>
-            </div>
-          </div>
-          <div class="pd-game-right">
-            <span class="pd-game-md">${h.matchday?.name ?? ''}</span>
-            <div class="pd-game-events">${events}</div>
-            ${gRating ? ratingBadge(gRating, gClass, 'sm') : ''}
-          </div>
-        </div>`;
-    };
-
-    const totwHtml = totw.length ? `
-      <div class="pd-section-title">Team of the Week</div>
-      <div class="pd-totw-list">
-        ${totw.map(a => `
-          <div class="pd-totw-row">
-            <svg width="16" height="16" viewBox="0 0 13 13" fill="none"><path d="M6.5,0.8 L7.9,4.6 L12,4.6 L8.7,7 L9.9,10.8 L6.5,8.4 L3.1,10.8 L4.3,7 L1,4.6 L5.1,4.6 Z" fill="#fbbf24"/></svg>
-            <span class="pd-totw-info"><b>${a.matchdayName}</b> · ${a.tournamentName}</span>
-          </div>`).join('')}
-      </div>` : '';
-
-    const gameLogHtml = (gameLogs.length || upcoming.length) ? `
-      <div class="pd-section-title">Recent Games</div>
-      <div class="pd-game-log">
-        ${upcoming.map(h => logRow(h, true)).join('')}
-        ${gameLogs.map(h => logRow(h, false)).join('')}
-      </div>` : '';
-
-    wrap.innerHTML = `
-      <div class="detail-fade-in">
-        <div class="pd-hero">
-          <div class="pd-hero-bg" style="background-image:url('${p.photo}')"></div>
-          <div class="pd-hero-overlay"></div>
-          <div class="pd-hero-content">
-            <img class="pd-photo" src="${p.photo}" alt="" onerror="this.src='${playerPhoto('default')}'">
-            <div class="pd-info">
-              <div class="pd-name">${p.firstName} <strong>${p.lastName}</strong></div>
-              <div class="pd-team"><img class="pd-team-logo" src="${p.team.logo}" alt="" onerror="this.style.opacity='.2'">${p.team.name ?? '—'}${jersey ? ` · #${jersey}` : ''}</div>
-              <div class="pd-badges">
-                <span class="pd-position-badge">${posFullName[p.position] ?? p.position ?? '—'}</span>
-                ${ratingBadge(rating, rClass, 'lg')}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="pd-stat-row">
-          <div class="pd-stat-pill"><div class="pd-stat-val">${games}</div><div class="pd-stat-lbl">Games</div></div>
-          <div class="pd-stat-pill"><div class="pd-stat-val">${goals}</div><div class="pd-stat-lbl">Goals</div></div>
-          <div class="pd-stat-pill"><div class="pd-stat-val">${assists}</div><div class="pd-stat-lbl">Assists</div></div>
-          <div class="pd-stat-pill"><div class="pd-stat-val">${pts||0}</div><div class="pd-stat-lbl">Pts</div></div>
-        </div>
-
-        ${rec ? `
-        <div class="pd-record-bar">
-          <div class="pd-record-seg" style="flex:${rec.won};background:#16a34a" title="${rec.won} Wins"></div>
-          <div class="pd-record-seg" style="flex:${rec.tied};background:#4b5563" title="${rec.tied} Draws"></div>
-          <div class="pd-record-seg" style="flex:${rec.lost};background:#ef4444" title="${rec.lost} Losses"></div>
-        </div>
-        <div class="pd-record-legend">
-          <span style="color:#16a34a">${rec.won}W</span>
-          <span style="color:#9ca3af">${rec.tied}D</span>
-          <span style="color:#ef4444">${rec.lost}L</span>
-        </div>` : ''}
-
-        <div class="pd-bio">
-          ${p.dateOfBirth ? `<div class="pd-bio-row"><span class="pd-bio-label">Age</span><span class="pd-bio-val">${fmtAge(p.dateOfBirth)} yrs</span></div>` : ''}
-          ${p.country     ? `<div class="pd-bio-row"><span class="pd-bio-label">Nationality</span><span class="pd-bio-val">${p.country}</span></div>` : ''}
-          ${ts.preferredFootName ?? p.preferredFootName ? `<div class="pd-bio-row"><span class="pd-bio-label">Preferred foot</span><span class="pd-bio-val">${ts.preferredFootName ?? footName[p.preferredFootId] ?? '—'}</span></div>` : ''}
-          ${yellow ? `<div class="pd-bio-row"><span class="pd-bio-label">Yellow cards</span><span class="pd-bio-val" style="display:flex;align-items:center;gap:5px">${yellow} ${ICON.yellowCard}</span></div>` : ''}
-          ${red    ? `<div class="pd-bio-row"><span class="pd-bio-label">Red cards</span><span class="pd-bio-val" style="display:flex;align-items:center;gap:5px">${red} ${ICON.redCard}</span></div>` : ''}
-          ${cleanSheets ? `<div class="pd-bio-row"><span class="pd-bio-label">Clean sheets</span><span class="pd-bio-val">${cleanSheets}</span></div>` : ''}
-          ${ownGoals ? `<div class="pd-bio-row"><span class="pd-bio-label">Own goals</span><span class="pd-bio-val">${ownGoals}</span></div>` : ''}
-          ${ts.tournamentName ? `<div class="pd-bio-row"><span class="pd-bio-label">Tournament</span><span class="pd-bio-val">${ts.tournamentName}</span></div>` : ''}
-        </div>
-
-        ${totwHtml}
-        ${gameLogHtml}
-      </div>`;
+    content.innerHTML = renderPlayerOverlay(p, seasonArr, history, awards, records);
+    content.querySelectorAll('[data-game-id]').forEach(n =>
+      n.addEventListener('click', () => {
+        closeOverlay('player-overlay');
+        openGameDetail(n.dataset.gameId);
+      }));
   } catch(e) {
     console.error(e);
-    wrap.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load player.</div></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load player.</div></div>';
   }
+}
+
+function renderPlayerOverlay(p, seasonArr, history, awards, records) {
+  const ts = Array.isArray(seasonArr) ? (seasonArr[0] ?? {}) : (seasonArr ?? {});
+  const pts    = ts.points ?? 0;
+  const rating = pts > 0 ? ptsToRating(pts) : '5.0';
+  const rClass = ratingClass(rating);
+  const goals   = ts.goals ?? 0;
+  const assists = ts.assists ?? 0;
+  const games   = ts.gamesPlayed ?? 0;
+  const yellow  = ts.yellowCards ?? 0;
+  const red     = ts.redCards ?? 0;
+  const ownGoals= ts.ownGoals ?? 0;
+  const cleanSheets = ts.cleanSheets ?? 0;
+  const jersey  = ts.jerseyNumber ?? p.team?.jerseyNumber ?? '';
+
+  const recVals = Object.values(records ?? {});
+  const rec = recVals.length ? recVals.reduce((a, b) => ({
+    won: (a.won??0)+(b.won??0), lost: (a.lost??0)+(b.lost??0), tied: (a.tied??0)+(b.tied??0)
+  }), {won:0,lost:0,tied:0}) : null;
+
+  const totw = (awards?.teamsOfTheWeek ?? []);
+  const allHistory = Array.isArray(history) ? [...history].sort((a,b) => (b.matchday?.matchdayOrder??0)-(a.matchday?.matchdayOrder??0)) : [];
+  const gameLogs = allHistory.filter(h => h.game?.gameFinalized);
+  const upcoming = allHistory.filter(h => !h.game?.gameFinalized).slice(0, 1);
+
+  const posFullName = { DEF: 'Defender', MED: 'Midfielder', DEL: 'Forward', POR: 'Goalkeeper' };
+  const footName = { '1': 'Right', '2': 'Left', '3': 'Both' };
+
+  const logRow = (h, isPending = false) => {
+    const gPts    = h.points ?? 0;
+    const gRating = (!isPending && gPts > 0) ? ptsToRating(gPts) : isPending ? null : '5.0';
+    const gClass  = gRating ? ratingClass(gRating) : '';
+    const isHome  = h.team?.id === h.game?.teamOne?.id;
+    const opp     = isHome ? h.game?.teamTwo : h.game?.teamOne;
+    const myGoals = isHome ? h.game?.goalsTeamOne : h.game?.goalsTeamTwo;
+    const oppGoals= isHome ? h.game?.goalsTeamTwo : h.game?.goalsTeamOne;
+    const result  = isPending ? null : myGoals > oppGoals ? 'W' : myGoals < oppGoals ? 'L' : 'D';
+    const rColMap = { W: '#16a34a', L: '#ef4444', D: '#6b7280' };
+    const rBg     = { W: 'rgba(22,163,74,0.12)', L: 'rgba(239,68,68,0.12)', D: 'rgba(107,114,128,0.08)' };
+
+    return `
+      <div class="pd-game-row ${isPending ? 'pd-game-pending' : ''}" style="${result ? `background:${rBg[result]}` : ''}">
+        <div class="pd-game-left">
+          ${result ? `<span class="pd-game-result-pill" style="background:${rColMap[result]}">${result}</span>` : `<span class="pd-game-result-pill" style="background:#374151">—</span>`}
+          <div class="pd-game-score-block">
+            <span class="pd-game-score">${isPending ? '—' : `${myGoals}–${oppGoals}`}</span>
+            <span class="pd-game-opp">${opp?.name ?? '—'}</span>
+          </div>
+        </div>
+        <div class="pd-game-right">
+          <span class="pd-game-md">${h.matchday?.name ?? ''}</span>
+          ${gRating ? ratingBadge(gRating, gClass, 'sm') : ''}
+        </div>
+      </div>`;
+  };
+
+  const totwHtml = totw.length ? `
+    <div class="pd-section-title">Team of the Week</div>
+    <div class="pd-totw-list">
+      ${totw.map(a => `
+        <div class="pd-totw-row">
+          <svg width="16" height="16" viewBox="0 0 13 13" fill="none"><path d="M6.5,0.8 L7.9,4.6 L12,4.6 L8.7,7 L9.9,10.8 L6.5,8.4 L3.1,10.8 L4.3,7 L1,4.6 L5.1,4.6 Z" fill="#fbbf24"/></svg>
+          <span class="pd-totw-info"><b>${a.matchdayName}</b> · ${a.tournamentName}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  const gameLogHtml = (gameLogs.length || upcoming.length) ? `
+    <div class="pd-section-title">Recent Games</div>
+    <div class="pd-game-log">
+      ${upcoming.map(h => logRow(h, true)).join('')}
+      ${gameLogs.map(h => logRow(h, false)).join('')}
+    </div>` : '';
+
+  return `
+    <div class="detail-fade-in">
+      <div class="pd-hero">
+        <div class="pd-hero-bg" style="background-image:url('${p.photo}')"></div>
+        <div class="pd-hero-overlay"></div>
+        <div class="pd-hero-content">
+          <img class="pd-photo" src="${p.photo}" alt="" onerror="this.src='${playerPhoto('default')}'">
+          <div class="pd-info">
+            <div class="pd-name">${p.firstName} <strong>${p.lastName}</strong></div>
+            <div class="pd-team"><img class="pd-team-logo" src="${p.team.logo}" alt="" onerror="this.style.opacity='.2'">${p.team.name ?? '—'}${jersey ? ` · #${jersey}` : ''}</div>
+            <div class="pd-badges">
+              <span class="pd-position-badge">${posFullName[p.position] ?? p.position ?? '—'}</span>
+              ${ratingBadge(rating, rClass, 'lg')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-stat-row">
+        <div class="pd-stat-pill"><div class="pd-stat-val">${games}</div><div class="pd-stat-lbl">Games</div></div>
+        <div class="pd-stat-pill"><div class="pd-stat-val">${goals}</div><div class="pd-stat-lbl">Goals</div></div>
+        <div class="pd-stat-pill"><div class="pd-stat-val">${assists}</div><div class="pd-stat-lbl">Assists</div></div>
+        <div class="pd-stat-pill"><div class="pd-stat-val">${pts||0}</div><div class="pd-stat-lbl">Pts</div></div>
+      </div>
+
+      ${rec ? `
+      <div class="pd-record-bar">
+        <div class="pd-record-seg" style="flex:${rec.won};background:#16a34a" title="${rec.won} Wins"></div>
+        <div class="pd-record-seg" style="flex:${rec.tied};background:#4b5563" title="${rec.tied} Draws"></div>
+        <div class="pd-record-seg" style="flex:${rec.lost};background:#ef4444" title="${rec.lost} Losses"></div>
+      </div>
+      <div class="pd-record-legend">
+        <span style="color:#16a34a">${rec.won}W</span>
+        <span style="color:#9ca3af">${rec.tied}D</span>
+        <span style="color:#ef4444">${rec.lost}L</span>
+      </div>` : ''}
+
+      <div class="pd-bio">
+        ${p.dateOfBirth ? `<div class="pd-bio-row"><span class="pd-bio-label">Age</span><span class="pd-bio-val">${Math.floor((Date.now() - new Date(p.dateOfBirth)) / (365.25*24*3600*1000))} yrs</span></div>` : ''}
+        ${p.country     ? `<div class="pd-bio-row"><span class="pd-bio-label">Nationality</span><span class="pd-bio-val">${p.country}</span></div>` : ''}
+        ${ts.preferredFootName ?? p.preferredFootName ? `<div class="pd-bio-row"><span class="pd-bio-label">Preferred foot</span><span class="pd-bio-val">${ts.preferredFootName ?? footName[p.preferredFootId] ?? '—'}</span></div>` : ''}
+        ${yellow ? `<div class="pd-bio-row"><span class="pd-bio-label">Yellow cards</span><span class="pd-bio-val" style="display:flex;align-items:center;gap:5px">${yellow}</span></div>` : ''}
+        ${red    ? `<div class="pd-bio-row"><span class="pd-bio-label">Red cards</span><span class="pd-bio-val" style="display:flex;align-items:center;gap:5px">${red}</span></div>` : ''}
+        ${cleanSheets ? `<div class="pd-bio-row"><span class="pd-bio-label">Clean sheets</span><span class="pd-bio-val">${cleanSheets}</span></div>` : ''}
+        ${ownGoals ? `<div class="pd-bio-row"><span class="pd-bio-label">Own goals</span><span class="pd-bio-val">${ownGoals}</span></div>` : ''}
+        ${ts.tournamentName ? `<div class="pd-bio-row"><span class="pd-bio-label">Tournament</span><span class="pd-bio-val">${ts.tournamentName}</span></div>` : ''}
+      </div>
+
+      ${totwHtml}
+      ${gameLogHtml}
+    </div>`;
+}
+
+// ─── TEAM DETAIL ──────────────────────────────────────────────────────────────
+async function openTeamDetail(teamId) {
+  const content = document.getElementById('team-detail-content');
+  content.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+  openOverlay('team-overlay');
+  try {
+    const [team, squad, recentGames, upcomingGames, stats] = await Promise.all([
+      api(`/api/teams/${teamId}`).catch(() => null),
+      api(`/api/teams/${teamId}/squad`).catch(() => []),
+      api(`/api/teams/${teamId}/games/recent`).catch(() => []),
+      api(`/api/teams/${teamId}/games/upcoming`).catch(() => []),
+      api(`/api/teams/${teamId}/stats`).catch(() => ({})),
+    ]);
+    content.innerHTML = renderTeamOverlay(team, squad, recentGames, upcomingGames, stats);
+    content.querySelectorAll('[data-game-id]').forEach(n =>
+      n.addEventListener('click', () => {
+        closeOverlay('team-overlay');
+        openGameDetail(n.dataset.gameId);
+      }));
+    content.querySelectorAll('[data-player-id]').forEach(n =>
+      n.addEventListener('click', () => {
+        closeOverlay('team-overlay');
+        openPlayerDetail(n.dataset.playerId, league);
+      }));
+  } catch(e) {
+    console.error(e);
+    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load team.</div></div>';
+  }
+}
+
+function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
+  if (!team) return '<div class="empty-state"><div class="empty-msg">Team not found.</div></div>';
+
+  const posLabel = { 'POR': 'GK', 'DEF': 'DEF', 'MED': 'MID', 'DEL': 'FWD' };
+
+  const last5 = recentGames.slice(0, 5).reverse();
+  const formHtml = last5.length ? `
+    <div class="team-form-row">
+      <span class="team-form-label">Form</span>
+      <div class="team-form-badges">
+        ${last5.map(g => {
+          const isHome = g.home.id === team.id;
+          const myScore = isHome ? g.home.score : g.away.score;
+          const oppScore = isHome ? g.away.score : g.home.score;
+          if (myScore === null || oppScore === null) return '';
+          const result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+          return `<span class="team-form-badge ${result.toLowerCase()}">${result}</span>`;
+        }).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const upcomingHtml = upcomingGames.length ? `
+    <div class="team-section">
+      <div class="team-section-title">Upcoming</div>
+      <div class="team-matches-list">
+        ${upcomingGames.map(g => {
+          const isHome = g.home.id === team.id;
+          return `
+            <div class="team-match-row" data-game-id="${g.id}" style="cursor:pointer">
+              <div class="team-match-date">${fmtDate(g.date)}</div>
+              <div class="team-match-teams">
+                <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
+                <span>vs</span>
+                <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
+              </div>
+              <div class="team-match-time">${fmtTime(g.date)}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const gamesHtml = recentGames.length ? `
+    <div class="team-section">
+      <div class="team-section-title">Recent Results</div>
+      <div class="team-matches-list">
+        ${recentGames.map(g => {
+          const isHome = g.home.id === team.id;
+          const myScore = isHome ? g.home.score : g.away.score;
+          const oppScore = isHome ? g.away.score : g.home.score;
+          let result = null;
+          if (myScore !== null && oppScore !== null) {
+            result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+          }
+          return `
+            <div class="team-match-row" data-game-id="${g.id}" style="cursor:pointer">
+              <div class="team-match-date">${fmtDate(g.date)}</div>
+              <div class="team-match-teams">
+                <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
+                <span>vs</span>
+                <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
+              </div>
+              <div class="team-match-score">${myScore !== null ? myScore + ' - ' + oppScore : '—'}</div>
+              ${result ? `<div class="team-match-result ${result.toLowerCase()}">${result}</div>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const squadByPos = squad.reduce((acc, p) => {
+    const pos = posLabel[p.position] || p.position || 'OTH';
+    if (!acc[pos]) acc[pos] = [];
+    acc[pos].push(p);
+    return acc;
+  }, {});
+
+  const posOrder = ['POR', 'DEF', 'MED', 'DEL'];
+  const squadHtml = squad.length ? `
+    <div class="team-section">
+      <div class="team-section-title">Squad</div>
+      ${posOrder.map(pos => {
+        const players = squadByPos[pos];
+        if (!players?.length) return '';
+        return `
+          <div class="team-pos-group">
+            <div class="team-pos-label">${pos === 'POR' ? 'Goalkeepers' : pos === 'DEF' ? 'Defenders' : pos === 'MED' ? 'Midfielders' : 'Forwards'}</div>
+            <div class="team-squad-list">
+              ${players.map(p => `
+                <div class="team-player-row" data-player-id="${p.id}" style="cursor:pointer">
+                  <img class="team-player-photo" src="${playerPhoto(p.id)}" alt="${p.firstName}" onerror="this.src='${playerPhoto('default')}'">
+                  <div class="team-player-info">
+                    <div class="team-player-name">${p.firstName} ${p.lastName}</div>
+                    <div class="team-player-meta">${p.jerseyNumber ? '#' + p.jerseyNumber : ''}</div>
+                  </div>
+                  ${p.jerseyNumber ? `<div class="team-player-number">${p.jerseyNumber}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  ` : '';
+
+  const statsData = stats || {};
+  const goalDiff = (statsData.goalsFor || 0) - (statsData.goalsAgainst || 0);
+  const statsHtml = (statsData.played || statsData.won || statsData.drawn || statsData.lost) ? `
+    <div class="team-section">
+      <div class="team-section-title">Season Stats</div>
+      <div class="team-stats-grid">
+        <div class="team-stat-card">
+          <div class="team-stat-val">${statsData.played || 0}</div>
+          <div class="team-stat-label">Played</div>
+        </div>
+        <div class="team-stat-card">
+          <div class="team-stat-val">${statsData.won || 0}</div>
+          <div class="team-stat-label">Wins</div>
+        </div>
+        <div class="team-stat-card">
+          <div class="team-stat-val">${statsData.drawn || 0}</div>
+          <div class="team-stat-label">Draws</div>
+        </div>
+        <div class="team-stat-card">
+          <div class="team-stat-val">${statsData.lost || 0}</div>
+          <div class="team-stat-label">Losses</div>
+        </div>
+        <div class="team-stat-card">
+          <div class="team-stat-val">${statsData.goalsFor || 0}</div>
+          <div class="team-stat-label">Goals For</div>
+        </div>
+        <div class="team-stat-card">
+          <div class="team-stat-val">${statsData.goalsAgainst || 0}</div>
+          <div class="team-stat-label">Goals Against</div>
+        </div>
+        <div class="team-stat-card wide">
+          <div class="team-stat-val ${goalDiff > 0 ? 'pos' : goalDiff < 0 ? 'neg' : ''}">${goalDiff > 0 ? '+' : ''}${goalDiff}</div>
+          <div class="team-stat-label">Goal Difference</div>
+        </div>
+      </div>
+    </div>
+  ` : '';
+
+  return `
+    <div class="detail-fade-in">
+      <div class="team-header">
+        <div class="team-header-logo">
+          <img src="${team.logo}" alt="${team.name}" onerror="this.style.opacity='0.3'">
+        </div>
+        <div class="team-header-name">${team.name}</div>
+        <div class="team-header-sub">${team.longName || ''}</div>
+        ${formHtml}
+      </div>
+      ${statsHtml}
+      ${upcomingHtml}
+      ${gamesHtml}
+      ${squadHtml}
+    </div>`;
+}
+
+// ─── NEWS DETAIL ──────────────────────────────────────────────────────────────
+async function openNewsDetail(newsId) {
+  const content = document.getElementById('news-detail-content');
+  content.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+  openOverlay('news-overlay');
+  try {
+    const n = await api(`/api/news/${newsId}`);
+    content.innerHTML = renderNewsDetail(n);
+  } catch(e) {
+    console.error(e);
+    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load news.</div></div>';
+  }
+}
+
+function renderNewsDetail(n) {
+  const imgHtml = n.image ? `<div class="news-detail-image"><img src="${n.image}" alt="" onerror="this.style.display='none'"></div>` : '';
+  const contentHtml = n.content ? `<div class="news-detail-body">${n.content}</div>` : '';
+  return `
+    <div class="detail-fade-in">
+      <div class="news-detail">
+        ${imgHtml}
+        <div class="news-detail-content">
+          <div class="news-detail-date">${fmtDateLong(n.date)}</div>
+          <h1 class="news-detail-title">${n.title}</h1>
+          ${contentHtml}
+          <div class="news-detail-stats">
+            <span>${n.views ?? 0} views</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderBestTeam(players, useMedian = false) {
+  const positions = {
+    'DEL': players.filter(p => p.position === 'Forward' || p.position === 'Delantero').slice(0, 2),
+    'MED': players.filter(p => p.position === 'Midfielder' || p.position === 'Mediocampo').slice(0, 3),
+    'DEF': players.filter(p => p.position === 'Defender' || p.position === 'Defensa').slice(0, 5),
+    'POR': players.filter(p => p.position === 'Goalkeeper' || p.position === 'Portero').slice(0, 1),
+  };
+
+  function renderPlayerNode(p) {
+    const ratingVal = useMedian && p.medianRating 
+      ? p.medianRating 
+      : (p.points ? parseFloat(ptsToRating(p.points)) : null);
+    const rClass = ratingVal ? ratingClass(ratingVal.toFixed(1)) : 'r-gray';
+    const ratingBadgeHtml = ratingVal 
+      ? ratingBadge(ratingVal.toFixed(1), rClass, 'sm')
+      : '<span style="color:var(--text-3)">—</span>';
+    const firstName = p.firstName?.split(' ')[0] || '';
+    return `
+      <div class="best-team-player" data-player-id="${p.id}" style="cursor:pointer">
+        <img class="best-team-player-photo" src="${playerPhoto(p.id)}" alt="${p.firstName}" onerror="this.src='${playerPhoto('default')}'">
+        <div class="best-team-player-name">${firstName}</div>
+        <div class="best-team-player-rating">${ratingBadgeHtml}</div>
+      </div>`;
+  }
+
+  // Count total players rendered
+  const totalPlayers = positions.DEL.length + positions.MED.length + positions.DEF.length + positions.POR.length;
+  let html = `<div class="best-team-pitch${totalPlayers === 11 ? ' full' : ''}">`;
+  
+  // Forward line (2)
+  html += `<div class="best-team-row">`;
+  if (positions.DEL[0]) html += renderPlayerNode(positions.DEL[0]);
+  if (positions.DEL[1]) html += renderPlayerNode(positions.DEL[1]);
+  html += `</div>`;
+  
+  // Midfield line (3)
+  html += `<div class="best-team-row">`;
+  if (positions.MED[0]) html += renderPlayerNode(positions.MED[0]);
+  if (positions.MED[1]) html += renderPlayerNode(positions.MED[1]);
+  if (positions.MED[2]) html += renderPlayerNode(positions.MED[2]);
+  html += `</div>`;
+  
+  // Defense line (5)
+  html += `<div class="best-team-row def">`;
+  if (positions.DEF[0]) html += renderPlayerNode(positions.DEF[0]);
+  if (positions.DEF[1]) html += renderPlayerNode(positions.DEF[1]);
+  if (positions.DEF[2]) html += renderPlayerNode(positions.DEF[2]);
+  if (positions.DEF[3]) html += renderPlayerNode(positions.DEF[3]);
+  if (positions.DEF[4]) html += renderPlayerNode(positions.DEF[4]);
+  html += `</div>`;
+  
+  // Goalkeeper line (1) - only if we have GK data
+  if (positions.POR[0]) {
+    html += `<div class="best-team-row gk">`;
+    html += renderPlayerNode(positions.POR[0]);
+    html += `</div>`;
+  }
+  
+  html += `</div>`;
+  return html;
 }
 
 // ─── Click binding ────────────────────────────────────────────────────────────
@@ -1163,6 +1609,32 @@ function bindClickable(containerId) {
   });
 }
 
+function bindTeamClickable(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.querySelectorAll('[data-team-id]').forEach(node => {
+    node.addEventListener('click', () => openTeamDetail(node.dataset.teamId));
+    node.addEventListener('keydown', e => { if (e.key === 'Enter') openTeamDetail(node.dataset.teamId); });
+  });
+}
+
+function bindNewsClickable(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.querySelectorAll('[data-news-id]').forEach(node => {
+    node.addEventListener('click', () => openNewsDetail(node.dataset.newsId));
+    node.addEventListener('keydown', e => { if (e.key === 'Enter') openNewsDetail(node.dataset.newsId); });
+  });
+}
+
+function bindBestTeamClickable(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.querySelectorAll('[data-player-id]').forEach(node => {
+    node.addEventListener('click', () => openPlayerDetail(node.dataset.playerId, league));
+  });
+}
+
 // ─── TEAMS ────────────────────────────────────────────────────────────────────
 async function loadTeams() {
   spin('view-teams');
@@ -1171,13 +1643,14 @@ async function loadTeams() {
     if (!teams.length) { empty('view-teams', 'No teams found.'); return; }
     let html = `<div class="teams-grid stagger">`;
     html += teams.map(t => `
-      <div class="team-card fade-item">
+      <div class="team-card fade-item" data-team-id="${t.id}" role="button" tabindex="0">
         <img class="team-card-logo" src="${t.logo}" loading="lazy" alt="${t.name}" onerror="this.style.opacity='.15'">
         <div class="team-card-name">${t.name}</div>
         ${t.longName && t.longName !== t.name ? `<div class="team-card-sub">${t.longName}</div>` : ''}
       </div>`).join('');
     html += '</div>';
     document.getElementById('view-teams').innerHTML = fadedHtml(html);
+    bindTeamClickable('view-teams');
   } catch(e) { console.error(e); fail('view-teams'); }
 }
 
@@ -1223,6 +1696,10 @@ document.getElementById('game-scrim').addEventListener('click',   () => closeOve
 document.getElementById('game-close-pill').addEventListener('click',   () => closeOverlay('game-overlay'));
 document.getElementById('player-scrim').addEventListener('click', () => closeOverlay('player-overlay'));
 document.getElementById('player-close-pill').addEventListener('click', () => closeOverlay('player-overlay'));
+document.getElementById('team-scrim').addEventListener('click', () => closeOverlay('team-overlay'));
+document.getElementById('team-close-pill').addEventListener('click', () => closeOverlay('team-overlay'));
+document.getElementById('news-scrim').addEventListener('click', () => closeOverlay('news-overlay'));
+document.getElementById('news-close-pill').addEventListener('click', () => closeOverlay('news-overlay'));
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (async () => {

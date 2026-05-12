@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0b">
+  <title>Team — LigaMob</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .team-header { padding: 24px 16px; text-align: center; border-bottom: 1px solid var(--border); }
+    .team-header-logo { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); padding: 8px; margin: 0 auto 12px; }
+    .team-header-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .team-header-name { font-size: 22px; font-weight: 700; color: var(--text-1); margin-bottom: 4px; }
+    .team-header-sub { font-size: 14px; color: var(--text-3); }
+    .team-section { padding: 16px; }
+    .team-section-title { font-size: 15px; font-weight: 600; color: var(--text-2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .team-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .team-stat-card { background: var(--surface-2); border-radius: 10px; padding: 14px 10px; text-align: center; }
+    .team-stat-val { font-size: 24px; font-weight: 700; color: var(--text-1); }
+    .team-stat-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    .team-squad-list { display: flex; flex-direction: column; gap: 8px; }
+    .team-player-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; cursor: pointer; }
+    .team-player-photo { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-1); object-fit: cover; }
+    .team-player-info { flex: 1; }
+    .team-player-name { font-size: 14px; font-weight: 500; color: var(--text-1); }
+    .team-player-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .team-player-number { font-size: 18px; font-weight: 700; color: var(--text-3); width: 32px; text-align: right; }
+    .team-matches-list { display: flex; flex-direction: column; gap: 8px; }
+    .team-match-row { display: flex; align-items: center; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; }
+    .team-match-date { font-size: 12px; color: var(--text-3); width: 60px; }
+    .team-match-teams { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--text-1); }
+    .team-match-teams img { width: 20px; height: 20px; }
+    .team-match-score { font-size: 14px; font-weight: 600; color: var(--text-1); width: 50px; text-align: center; }
+    .team-match-result { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
+    .team-match-result.w { background: rgba(22,163,74,0.15); color: #16a34a; }
+    .team-match-result.l { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .team-match-result.d { background: rgba(107,114,128,0.15); color: #6b7280; }
+    .team-back-btn { position: fixed; top: 16px; left: 16px; z-index: 100; background: var(--surface-2); border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .team-back-btn svg { width: 20px; height: 20px; stroke: var(--text-1); }
+    .team-form-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; }
+    .team-form-label { font-size: 12px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; }
+    .team-form-badges { display: flex; gap: 4px; }
+    .team-form-badge { font-size: 11px; font-weight: 700; width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+    .team-form-badge.w { background: rgba(22,163,74,0.2); color: #16a34a; }
+    .team-form-badge.d { background: rgba(107,114,128,0.2); color: #6b7280; }
+    .team-form-badge.l { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .team-match-time { font-size: 13px; color: var(--text-2); font-weight: 500; width: 50px; text-align: right; }
+    .team-pos-group { margin-bottom: 16px; }
+    .team-pos-label { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-left: 4px; }
+    .team-stat-card.wide { grid-column: span 3; }
+    .team-stat-val.pos { color: #16a34a; }
+    .team-stat-val.neg { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <button class="team-back-btn" onclick="history.back()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+  </button>
+
+  <div id="team-content">
+    <div class="spinner-wrap" style="padding: 100px"><div class="spinner"></div></div>
+  </div>
+
+  <script src="/team.js"></script>
+</body>
+</html>

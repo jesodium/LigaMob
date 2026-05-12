@@ -101,10 +101,23 @@ function normalizePlayerRow(p) {
 }
 
 // ── API handlers ───────────────────────────────────────────────────────────────
+const SITE_ALIAS = { 'ligaplus-u18': 'ligaplus', 'liga10-u18': 'liga10' };
+const TOURNAMENT_OVERRIDE = { 'ligaplus-u18': 1000240, 'liga10-u18': 1000293 };
+const TOURNAMENT_NAMES = { 'ligaplus-u18': 'Liga+ U18', 'liga10-u18': 'Liga10 U18' };
+
+function resolveSite(id) { return SITE_ALIAS[id] ?? id; }
+
 async function getLeagues() {
   const sites = await up('/sites');
-  const SUPPORTED = new Set(['liga10','ligaplus','ligajr','ptycityfc','ligaw','ligau','liga123']);
-  return sites.filter(s => SUPPORTED.has(s.id)).map(s => ({ id: s.id, name: s.name, url: s.url, logo: img.site(s.id) }));
+  const SUPPORTED = new Set(['ligaplus','ligajr','ptycityfc','ligaw','ligau','liga123']);
+  let list = sites.filter(s => SUPPORTED.has(s.id)).map(s => ({ id: s.id, name: s.name, url: s.url, logo: img.site(s.id) }));
+  // Add Liga10 U18 (hide regular Liga10)
+  const liga10 = sites.find(s => s.id === 'liga10');
+  if (liga10) list.push({ id: 'liga10-u18', name: 'Liga10 U18', url: liga10.url, logo: img.site(liga10.id) });
+  // Add Liga+ U18 alongside Liga+ U16
+  const ligaplus = sites.find(s => s.id === 'ligaplus');
+  if (ligaplus) list.push({ id: 'ligaplus-u18', name: 'Liga+ U18', url: ligaplus.url, logo: img.site(ligaplus.id) });
+  return list;
 }
 
 function normalizeTournament(raw) {
@@ -114,49 +127,58 @@ function normalizeTournament(raw) {
 }
 
 async function getDefaultTournament(siteId) {
-  const raw = await up(`/sites/${siteId}/tournaments/default`);
+  const realSite = resolveSite(siteId);
+  if (TOURNAMENT_OVERRIDE[siteId]) {
+    const tid = TOURNAMENT_OVERRIDE[siteId];
+    return { id: tid, name: TOURNAMENT_NAMES[siteId] ?? 'League' };
+  }
+  const raw = await up(`/sites/${realSite}/tournaments/default`);
   return normalizeTournament(raw);
 }
 
 async function getLeagueHome(siteId) {
-  const [rawTournament, games, news] = await Promise.all([
-    up(`/sites/${siteId}/tournaments/default`).catch(() => null),
-    up(`/sites/${siteId}/games/to-be-played`).catch(() => []),
-    up(`/sites/${siteId}/news`).catch(() => []),
+  const realSite = resolveSite(siteId);
+  const tournament = await getDefaultTournament(siteId).catch(() => null);
+  const [games, news] = await Promise.all([
+    up(`/sites/${realSite}/games/to-be-played`).catch(() => []),
+    up(`/sites/${realSite}/news`).catch(() => []),
   ]);
-  const tournament = normalizeTournament(rawTournament);
   let standings = null;
   if (tournament?.id)
-    standings = await up(`/sites/${siteId}/tournaments/${tournament.id}/positions-table`).catch(() => null);
+    standings = await up(`/sites/${realSite}/tournaments/${tournament.id}/positions-table`).catch(() => null);
   return {
     tournament: tournament ?? null,
-    upcomingGames: arr(games).slice(0, 10).map(normalizeGame),
+    upcomingGames: arr(games).filter(g => !tournament?.id || g.tournament?.id == tournament.id).slice(0, 10).map(normalizeGame),
     standings: standings ? normalizeStandingsData(standings) : null,
     latestNews: arr(news).slice(0, 5).map(normalizeNews),
   };
 }
 
 async function getStandings(siteId, query) {
+  const realSite = resolveSite(siteId);
   let tid = query.tournamentId;
   if (!tid) { const t = await getDefaultTournament(siteId); tid = t?.id; }
-  const data = await up(`/sites/${siteId}/tournaments/${tid}/positions-table`);
+  const data = await up(`/sites/${realSite}/tournaments/${tid}/positions-table`);
   return { tournamentId: tid, groups: normalizeStandingsData(data) };
 }
 
 async function getLeagueGames(siteId, query) {
-  const games = await up(`/sites/${siteId}/games/to-be-played`).catch(() => []);
-  let rows = arr(games).map(normalizeGame);
+  const realSite = resolveSite(siteId);
+  const t = await getDefaultTournament(siteId).catch(() => null);
+  const games = await up(`/sites/${realSite}/games/to-be-played`).catch(() => []);
+  let rows = arr(games).filter(g => !t?.id || g.tournament?.id == t.id).map(normalizeGame);
   if (query.status) rows = rows.filter(g => g.status === query.status);
   return rows;
 }
 
-async function getTeams(siteId)   { return arr(await up(`/sites/${siteId}/teams`)).map(normalizeTeam); }
+async function getTeams(siteId)   { const s = resolveSite(siteId); return arr(await up(`/sites/${s}/teams`)).map(normalizeTeam); }
 async function getPlayers(siteId) {
+  const s = resolveSite(siteId);
   const t = await getDefaultTournament(siteId).catch(() => null);
-  const url = t?.id ? `/sites/${siteId}/players?tournamentId=${t.id}` : `/sites/${siteId}/players`;
+  const url = t?.id ? `/sites/${s}/players?tournamentId=${t.id}` : `/sites/${s}/players`;
   return arr(await up(url)).map(normalizePlayerRow);
 }
-async function getNews(siteId)    { return arr(await up(`/sites/${siteId}/news`)).map(normalizeNews); }
+async function getNews(siteId)    { const s = resolveSite(siteId); return arr(await up(`/sites/${s}/news`)).map(normalizeNews); }
 
 async function getResults(siteId) {
   const t = await getDefaultTournament(siteId).catch(() => null);
@@ -172,13 +194,15 @@ async function getResults(siteId) {
 }
 
 async function getTournaments(siteId) {
-  const ts = await up(`/sites/${siteId}/tournaments`);
+  const s = resolveSite(siteId);
+  const ts = await up(`/sites/${s}/tournaments`);
   return arr(ts).map(t => ({ id: t.id, name: t.tournamentName, startDate: t.startDate }));
 }
 
 async function getMatchdays(siteId, tid) {
+  const s = resolveSite(siteId);
   if (!tid) { const t = await getDefaultTournament(siteId); tid = t?.id; }
-  const mds = await up(`/sites/${siteId}/tournaments/${tid}/matchdays`);
+  const mds = await up(`/sites/${s}/tournaments/${tid}/matchdays`);
   return arr(mds).map(m => ({ id: m.id, name: m.name, isPlayoff: !!m.isPlayoff, order: m.matchdayOrder }));
 }
 
@@ -261,6 +285,68 @@ async function getNewsArticle(id) {
   return { ...normalizeNews(n), content: n.content ?? null, views: n.numberOfViews ?? 0 };
 }
 
+async function getTeam(teamId) {
+  const teams = await up(`/teams/${teamId}`);
+  if (!teams) return null;
+  return normalizeTeam(teams);
+}
+
+async function getTeamSquad(teamId) {
+  const raw = await up(`/teams/${teamId}/squad`).catch(() => []);
+  return arr(raw).map(p => ({
+    id: p.id, firstName: p.firstName, lastName: p.lastName,
+    position: p.position?.name ?? (typeof p.position === 'string' ? p.position : null),
+    jerseyNumber: p.jerseyNumber ?? null,
+    photo: img.player(p.id),
+  }));
+}
+
+async function getTeamRecentGames(teamId) {
+  const t = await getDefaultTournament('ligaplus').catch(() => null);
+  if (!t?.id) return [];
+  const raw = await upCached('/games/all', 180000);
+  const allGames = arr(raw?.elements ?? raw);
+  const statusId = g => g.status?.id ?? g.status ?? -1;
+  return allGames
+    .filter(g => {
+      const isTeam = g.teamOne?.id == teamId || g.teamTwo?.id == teamId;
+      return isTeam && (statusId(g) === 1 || statusId(g) === 4 || statusId(g) === 5 || statusId(g) === 6);
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 10)
+    .map(normalizeGame);
+}
+
+async function getTeamStats(teamId) {
+  const t = await getDefaultTournament('ligaplus').catch(() => null);
+  if (!t?.id) return {};
+  const stats = await up(`/sites/ligaplus/tournaments/${t.id}/teams/${teamId}/statistics`).catch(() => ({}));
+  return {
+    played: stats.gamesPlayed ?? stats.played ?? 0,
+    won: stats.gamesWon ?? stats.won ?? 0,
+    drawn: stats.gamesDraw ?? stats.drawn ?? 0,
+    lost: stats.gamesLost ?? stats.lost ?? 0,
+    goalsFor: stats.goalsInFavor ?? stats.goalsFor ?? 0,
+    goalsAgainst: stats.goalsAgainst ?? 0,
+  };
+}
+
+async function getTeamUpcomingGames(teamId) {
+  const t = await getDefaultTournament('ligaplus').catch(() => null);
+  if (!t?.id) return [];
+  const raw = await upCached('/games/all', 180000);
+  const allGames = arr(raw?.elements ?? raw);
+  const statusId = g => g.status?.id ?? g.status ?? -1;
+  return allGames
+    .filter(g => {
+      const isTeam = g.teamOne?.id == teamId || g.teamTwo?.id == teamId;
+      return isTeam && statusId(g) === 0;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 5)
+    .map(normalizeGame);
+}
+
 // ── Middleware ─────────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -292,11 +378,16 @@ app.get('/api/leagues/:site/tournaments',        route(req   => getTournaments(r
 app.get('/api/leagues/:site/matchdays',          route(req   => getMatchdays(req.params.site, req.query.tournamentId)));
 app.get('/api/games/:id',                        route(req   => getGame(req.params.id)));
 app.get('/api/players/:id',                      route(req   => getPlayer(req.params.id)));
-app.get('/api/leagues/:site/players/:id/statistics',     route(req => up(`/sites/${req.params.site}/tournaments/players/${req.params.id}/statistics`)));
-app.get('/api/leagues/:site/players/:id/history',        route(req => up(`/sites/${req.params.site}/players/${req.params.id}/statistics/all-leagues`)));
-app.get('/api/leagues/:site/players/:id/awards',         route(req => up(`/sites/${req.params.site}/players/${req.params.id}/awards`)));
+app.get('/api/leagues/:site/players/:id/statistics',     route(req => { const s = resolveSite(req.params.site); return up(`/sites/${s}/tournaments/players/${req.params.id}/statistics`); }));
+app.get('/api/leagues/:site/players/:id/history',        route(req => { const s = resolveSite(req.params.site); return up(`/sites/${s}/players/${req.params.id}/statistics/all-leagues`); }));
+app.get('/api/leagues/:site/players/:id/awards',         route(req => { const s = resolveSite(req.params.site); return up(`/sites/${s}/players/${req.params.id}/awards`); }));
 app.get('/api/leagues/:site/players/:id/records',        route(req => up(`/sites/${req.params.site}/players/${req.params.id}/games/records`)));
 app.get('/api/news/:id',                         route(req   => getNewsArticle(req.params.id)));
+app.get('/api/teams/:id',                        route(req   => getTeam(req.params.id)));
+app.get('/api/teams/:id/squad',                 route(req   => getTeamSquad(req.params.id)));
+app.get('/api/teams/:id/games/recent',           route(req   => getTeamRecentGames(req.params.id)));
+app.get('/api/teams/:id/stats',                 route(req   => getTeamStats(req.params.id)));
+app.get('/api/teams/:id/games/upcoming',        route(req   => getTeamUpcomingGames(req.params.id)));
 
 app.use(express.static(join(__dirname, 'public')));
 
