@@ -11,22 +11,12 @@ const cache = {};
 const CDN = 'https://dt6mt1pwzn2ao.cloudfront.net/images/players';
 
 const ICON = {
-  // ⚽ Goal ball
-  goal: `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="15" height="15">
-    <circle cx="8" cy="8" r="7" stroke="#ffffff" stroke-width="1.4" fill="rgba(0,0,0,0.5)"/>
-    <polygon points="8,3.5 9.8,6.5 13,6.5 10.6,8.5 11.5,11.5 8,9.5 4.5,11.5 5.4,8.5 3,6.5 6.2,6.5" fill="#ffffff" opacity=".95"/>
-  </svg>`,
-  // ⚽ Small pitch goal icon
-  goalSmall: `<svg viewBox="0 0 13 13" fill="none" width="13" height="13">
-    <circle cx="6.5" cy="6.5" r="5.5" fill="rgba(255,255,255,0.9)" stroke="rgba(0,0,0,0.4)" stroke-width="0.8"/>
-    <polygon points="6.5,2.5 8,5 10.5,5 8.5,6.7 9.2,9.2 6.5,7.6 3.8,9.2 4.5,6.7 2.5,5 5,5" fill="#1a4a28"/>
-  </svg>`,
-  // Arrow assist
-  assist: `<svg viewBox="0 0 16 16" fill="none" width="15" height="15">
-    <circle cx="8" cy="8" r="7" fill="rgba(0,0,0,0.5)" stroke="#9a9a9a" stroke-width="1.4"/>
-    <path d="M3.5 10.5 C5 5.5, 11 5.5, 12.5 10.5" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none" opacity=".8"/>
-    <path d="M10 7.5 L12.5 10.5 L10 13" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".8"/>
-  </svg>`,
+  // ⚽ Goal ball (FotMob style)
+  goal: `<svg width="22" height="22" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#cg)"><circle cx="7" cy="7" r="5.25" fill="#fff"/><path d="M8.88284 9.49699C8.72009 9.49699 8.55734 9.48591 8.39459 9.46958C8.34242 9.4595 8.29347 9.43694 8.25192 9.40382C8.21037 9.3707 8.17746 9.32802 8.156 9.27941C7.988 8.65524 7.82525 8.06374 7.66775 7.48858C7.6388 7.41343 7.63706 7.33052 7.66285 7.25423C7.68863 7.17794 7.74031 7.11308 7.80892 7.07091L9.17625 5.84591C9.2334 5.7961 9.30665 5.76865 9.38246 5.76865C9.45827 5.76865 9.53152 5.7961 9.58867 5.84591C10.0474 6.09633 10.4588 6.42503 10.8043 6.81716C10.8827 6.91412 10.9266 7.03436 10.9292 7.15899C10.932 7.84171 10.7287 8.50937 10.3458 9.07466C10.342 9.09048 10.3346 9.10523 10.3243 9.11782C10.253 9.2147 10.1577 9.29131 10.0478 9.34008C9.67045 9.44934 9.27911 9.50241 8.88634 9.49758L8.88284 9.49699Z" fill="#1a4a28"/><path d="M4.46584 8.17283C4.40038 8.17345 4.33693 8.15023 4.28734 8.10749C3.85925 7.84832 3.48656 7.50715 3.19067 7.10358C3.14231 7.03529 3.11586 6.95391 3.11484 6.87024C3.11458 6.23357 3.28305 5.60821 3.60309 5.05783C3.60723 5.03788 3.61894 5.02032 3.63575 5.00883C3.68407 4.96581 3.74151 4.93429 3.80375 4.91666C4.17914 4.77018 4.57855 4.69501 4.9815 4.69499C5.1061 4.68414 5.23141 4.68414 5.356 4.69499C5.42674 4.70258 5.49274 4.73415 5.54304 4.78445C5.59335 4.83475 5.62492 4.90076 5.6325 4.97149C5.72992 5.39499 5.83842 5.82899 5.94167 6.26299L6.02334 6.61299C6.03691 6.666 6.036 6.72167 6.02071 6.77421C6.00542 6.82674 5.97631 6.87421 5.93642 6.91166L4.67234 8.09699C4.64603 8.1233 4.61472 8.14409 4.58026 8.15811C4.5458 8.17214 4.50888 8.17912 4.47167 8.17866H4.46584V8.17283Z" fill="#1a4a28"/><path d="M6.99984 1.16699C5.84612 1.16699 4.7183 1.50911 3.75901 2.15009C2.79973 2.79106 2.05205 3.7021 1.61054 4.76801C1.16903 5.83391 1.05351 7.0068 1.27859 8.13835C1.50367 9.26991 2.05924 10.3093 2.87505 11.1251C3.69086 11.9409 4.73026 12.4965 5.86181 12.7216C6.99337 12.9467 8.16626 12.8311 9.23216 12.3896C10.2981 11.9481 11.2091 11.2004 11.8501 10.2412C12.4911 9.28186 12.8332 8.15405 12.8332 7.00033C12.8332 5.45323 12.2186 3.9695 11.1246 2.87554C10.0307 1.78157 8.54694 1.16699 6.99984 1.16699Z" fill="#1a4a28" opacity=".18"/></g><defs><clipPath id="cg"><rect width="14" height="14" fill="white"/></clipPath></defs></svg>`,
+  // ⚽ Small pitch goal icon (same, slightly smaller)
+  goalSmall: `<svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#cgs)"><circle cx="7" cy="7" r="5.25" fill="#fff"/><path d="M8.88284 9.49699C8.72009 9.49699 8.55734 9.48591 8.39459 9.46958C8.34242 9.4595 8.29347 9.43694 8.25192 9.40382C8.21037 9.3707 8.17746 9.32802 8.156 9.27941C7.988 8.65524 7.82525 8.06374 7.66775 7.48858C7.6388 7.41343 7.63706 7.33052 7.66285 7.25423C7.68863 7.17794 7.74031 7.11308 7.80892 7.07091L9.17625 5.84591C9.2334 5.7961 9.30665 5.76865 9.38246 5.76865C9.45827 5.76865 9.53152 5.7961 9.58867 5.84591C10.0474 6.09633 10.4588 6.42503 10.8043 6.81716C10.8827 6.91412 10.9266 7.03436 10.9292 7.15899C10.932 7.84171 10.7287 8.50937 10.3458 9.07466C10.342 9.09048 10.3346 9.10523 10.3243 9.11782C10.253 9.2147 10.1577 9.29131 10.0478 9.34008C9.67045 9.44934 9.27911 9.50241 8.88634 9.49758L8.88284 9.49699Z" fill="#1a4a28"/><path d="M4.46584 8.17283C4.40038 8.17345 4.33693 8.15023 4.28734 8.10749C3.85925 7.84832 3.48656 7.50715 3.19067 7.10358C3.14231 7.03529 3.11586 6.95391 3.11484 6.87024C3.11458 6.23357 3.28305 5.60821 3.60309 5.05783C3.60723 5.03788 3.61894 5.02032 3.63575 5.00883C3.68407 4.96581 3.74151 4.93429 3.80375 4.91666C4.17914 4.77018 4.57855 4.69501 4.9815 4.69499C5.1061 4.68414 5.23141 4.68414 5.356 4.69499C5.42674 4.70258 5.49274 4.73415 5.54304 4.78445C5.59335 4.83475 5.62492 4.90076 5.6325 4.97149C5.72992 5.39499 5.83842 5.82899 5.94167 6.26299L6.02334 6.61299C6.03691 6.666 6.036 6.72167 6.02071 6.77421C6.00542 6.82674 5.97631 6.87421 5.93642 6.91166L4.67234 8.09699C4.64603 8.1233 4.61472 8.14409 4.58026 8.15811C4.5458 8.17214 4.50888 8.17912 4.47167 8.17866H4.46584V8.17283Z" fill="#1a4a28"/><path d="M6.99984 1.16699C5.84612 1.16699 4.7183 1.50911 3.75901 2.15009C2.79973 2.79106 2.05205 3.7021 1.61054 4.76801C1.16903 5.83391 1.05351 7.0068 1.27859 8.13835C1.50367 9.26991 2.05924 10.3093 2.87505 11.1251C3.69086 11.9409 4.73026 12.4965 5.86181 12.7216C6.99337 12.9467 8.16626 12.8311 9.23216 12.3896C10.2981 11.9481 11.2091 11.2004 11.8501 10.2412C12.4911 9.28186 12.8332 8.15405 12.8332 7.00033C12.8332 5.45323 12.2186 3.9695 11.1246 2.87554C10.0307 1.78157 8.54694 1.16699 6.99984 1.16699Z" fill="#1a4a28" opacity=".18"/></g><defs><clipPath id="cgs"><rect width="14" height="14" fill="white"/></clipPath></defs></svg>`,
+  // Assist (FotMob hand pass icon)
+  assist: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 14 14"><ellipse cx="7" cy="7" rx="7" ry="7" fill="rgba(255,255,255,0.15)"/><g id="ic_assist" transform="translate(1 1)"><path fill="rgba(255,255,255,0.9)" fill-rule="evenodd" d="M10.608 4.7c-.175.1-.377.209-.6.337-.156.09-.322.188-.493.3-.806.524-6.651 4.113-7.836 4.793s-3.035.929-3.565.016 1.029-1.952 1.948-3.055C1.11 5.833 2.48 4.461 2.48 4.461c-.088-.426.332-.712.494-.805a.607.607 0 0 1 .06-.03c-.117-.5.631-.929.631-.929l1.147-2.518a.231.231 0 0 1 .094-.105.236.236 0 0 1 .208-.013l1.024.424c.673.283-.769 1.89-.465 1.962a1.67 1.67 0 0 0 1.043-.273 2.826 2.826 0 0 0 .735-.614c.48-.56-.03-1.38.249-1.543.1-.054.287-.034.642.095 1.393.535 2.192 2.211 2.776 3.254.402.709.121.973-.51 1.334z"/></g></svg>`,
   // Yellow card
   yellowCard: `<svg viewBox="0 0 10 14" width="10" height="14"><rect width="10" height="14" rx="1.5" fill="#fbbf24"/><rect x="1" y="1" width="8" height="12" rx="1" fill="rgba(255,255,255,0.15)"/></svg>`,
   // Red card
@@ -47,9 +37,9 @@ const ICON = {
     <path d="M4.5 4.5l5 5M9.5 4.5l-5 5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
   </svg>`,
   // Large icons for player tab pills
-  goalLg: `<svg viewBox="0 0 18 18" fill="none" width="16" height="16"><circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.5"/><polygon points="9,4 11,7.5 15,7.5 12,9.8 13,13 9,11 5,13 6,9.8 3,7.5 7,7.5" fill="currentColor"/></svg>`,
-  assistLg: `<svg viewBox="0 0 18 18" fill="none" width="16" height="16"><path d="M3 13 C5.5 5, 12.5 5, 15 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 10L15 13L12 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  gamesLg: `<svg viewBox="0 0 18 18" fill="none" width="16" height="16"><rect x="2" y="3" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="1" x2="12" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="1" x2="6" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="8" x2="16" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>`,
+  goalLg: `<svg viewBox="0 0 18 18" fill="none" width="24" height="24"><circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.5"/><polygon points="9,4 11,7.5 15,7.5 12,9.8 13,13 9,11 5,13 6,9.8 3,7.5 7,7.5" fill="currentColor"/></svg>`,
+  assistLg: `<svg viewBox="0 0 18 18" fill="none" width="24" height="24"><path d="M3 13 C5.5 5, 12.5 5, 15 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 10L15 13L12 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  gamesLg: `<svg viewBox="0 0 18 18" fill="none" width="24" height="24"><rect x="2" y="3" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="1" x2="12" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="1" x2="6" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="8" x2="16" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>`,
 };
 
 // ─── Ratings ─────────────────────────────────────────────────────────────────
@@ -70,6 +60,13 @@ function ratingClass(r) {
   return 'r-gray';
 }
 
+const STAR_SVG = `<svg width="100%" height="100%" viewBox="0 0 13 13" version="1.1" xmlns="http://www.w3.org/2000/svg"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g fill="currentColor" fill-rule="nonzero"><path d="M4.63272179,7.41941433 L6.88042179,8.77921433 C7.06648135,8.89214518 7.30210963,8.88253227 7.47835171,8.75482062 C7.65459378,8.62710897 7.73710097,8.40618894 7.68772179,8.19421433 L7.09232179,5.63711433 L9.08002179,3.91461433 C9.244408,3.77228731 9.30756604,3.54534836 9.24033937,3.33856253 C9.1731127,3.13177669 8.98857687,2.98536373 8.77192179,2.96691433 L6.15502179,2.74461433 L5.13192179,0.329214332 C5.04665941,0.129541157 4.85048708,0 4.63337179,0 C4.4162565,0 4.22008416,0.129541157 4.13482179,0.329214332 L3.11172179,2.73941433 L0.496121789,2.96171433 C0.279238733,2.97970287 0.0942685405,3.12594289 0.0267269593,3.33282446 C-0.0408146219,3.53970602 0.0222330995,3.7669176 0.186721789,3.90941433 L2.17442179,5.62541433 L1.57772179,8.18771433 C1.52834261,8.39968894 1.6108498,8.62060897 1.78709187,8.74832062 C1.96333395,8.87603227 2.19896223,8.88564518 2.38502179,8.77271433 L4.63272179,7.41941433 Z"/></g></g></svg>`;
+
+function ratingBadge(rating, cls, size = 'md') {
+  const s = size === 'lg' ? 'pd-rating-badge lg' : size === 'sm' ? 'pd-rating-badge sm' : 'pd-rating-badge';
+  return `<div class="${s} ${cls}"><span>${rating}</span>${STAR_SVG}</div>`;
+}
+
 // ─── API ──────────────────────────────────────────────────────────────────────
 async function api(path) {
   if (cache[path]) return cache[path];
@@ -88,10 +85,30 @@ function fmtDateLong(s) { if (!s) return ''; return new Date(s).toLocaleDateStri
 function fmtAge(dob) { if (!dob) return '—'; return Math.floor((Date.now() - new Date(dob)) / (365.25*24*3600*1000)); }
 function shortName(n) { if (!n) return '—'; const p = n.trim().split(' '); return p[0]; }
 function playerPhoto(id) { return `${CDN}/${id || 'default'}.jpg`; }
+function fmtMins(mins) {
+  if (!mins || !Array.isArray(mins) || !mins.length) return '';
+  return `<span class="event-mins">${mins.map(m => m + "'").join(', ')}</span>`;
+}
 
 // ─── Overlays ─────────────────────────────────────────────────────────────────
-function openOverlay(id) { const el = document.getElementById(id); el.setAttribute('aria-hidden','false'); el.classList.add('open'); document.body.style.overflow='hidden'; }
-function closeOverlay(id) { const el = document.getElementById(id); el.setAttribute('aria-hidden','true'); el.classList.remove('open'); document.body.style.overflow=''; }
+function openOverlay(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute('aria-hidden','false');
+  el.classList.add('open');
+  document.body.style.overflow='hidden';
+  const m = el.querySelector('.modal');
+  if (m) m.scrollTop = 0;
+}
+function closeOverlay(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute('aria-hidden','true');
+  el.classList.remove('open');
+  setTimeout(() => {
+    if (!document.querySelector('.overlay.open')) document.body.style.overflow='';
+  }, 300); // Wait for transition
+}
 
 // ─── League Picker ────────────────────────────────────────────────────────────
 async function loadLeagues() {
@@ -106,12 +123,14 @@ async function openLeaguePicker() {
   grid.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   try {
     const list = await loadLeagues();
-    grid.innerHTML = list.map(l => `
-      <div class="league-card fade-item ${l.id === league ? 'selected' : ''}" data-id="${l.id}">
-        <img class="league-card-logo" src="${l.logo}" alt="${l.name}" loading="lazy" onerror="this.style.opacity='.15'">
-        <div class="league-card-name">${l.name}</div>
-        <div class="selected-check"><svg viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5 8.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      </div>`).join('');
+    grid.innerHTML = `<div class="detail-fade-in" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:var(--s-3);padding:var(--s-5)">
+      ${list.map(l => `
+        <div class="league-card fade-item ${l.id === league ? 'selected' : ''}" data-id="${l.id}">
+          <img class="league-card-logo" src="${l.logo}" alt="${l.name}" loading="lazy" onerror="this.style.opacity='.15'">
+          <div class="league-card-name">${l.name}</div>
+          <div class="selected-check"><svg viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5 8.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>`).join('')}
+    </div>`;
     grid.querySelectorAll('.league-card').forEach(c => c.addEventListener('click', () => selectLeague(c.dataset.id)));
   } catch {
     grid.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load</div></div>';
@@ -143,7 +162,8 @@ async function updateTopbarLeague() {
 
 // ─── Spinner / Empty ──────────────────────────────────────────────────────────
 function spin(id) { document.getElementById(id).innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>'; }
-function empty(id, msg='Nothing here') { document.getElementById(id).innerHTML = `<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-msg">${msg}</div></div>`; }
+function fadedHtml(html) { return `<div class="detail-fade-in">${html}</div>`; }
+function empty(id, msg='Nothing here') { document.getElementById(id).innerHTML = fadedHtml(`<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-msg">${msg}</div></div>`); }
 function fail(id)  { empty(id, 'Failed to load.'); }
 
 // ─── Match Row (FotMob compact) ───────────────────────────────────────────────
@@ -268,7 +288,7 @@ async function loadHome() {
       html += '</div>';
     }
 
-    document.getElementById('view-home').innerHTML = html || '<div class="empty-state"><div class="empty-msg">Nothing to show.</div></div>';
+    document.getElementById('view-home').innerHTML = fadedHtml(html || '<div class="empty-state"><div class="empty-msg">Nothing to show.</div></div>');
     bindClickable('view-home');
   } catch(e) { console.error(e); fail('view-home'); }
 }
@@ -314,11 +334,11 @@ async function loadMatchesBody() {
       html += `</div>`;
     }
     html += '</div>';
-    body.innerHTML = html;
+    body.innerHTML = fadedHtml(html);
     bindClickable('matches-body');
   } catch(e) {
     console.error(e);
-    body.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-msg">Failed to load.</div></div>';
+    body.innerHTML = fadedHtml('<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-msg">Failed to load.</div></div>');
   }
 }
 
@@ -336,7 +356,7 @@ async function loadStandings() {
     </div>`;
     html += groups.length ? groups.map(g => standingsGroupHtml(g)).join('') : '<div class="empty-state"><div class="empty-msg">Standings not available.</div></div>';
     html += '</div>';
-    document.getElementById('view-standings').innerHTML = html;
+    document.getElementById('view-standings').innerHTML = fadedHtml(html);
   } catch(e) { console.error(e); fail('view-standings'); }
 }
 
@@ -433,9 +453,9 @@ async function loadPlayersBody() {
         </div>`;
     });
     html += '</div>';
-    body.innerHTML = html;
+    body.innerHTML = fadedHtml(html);
     body.querySelectorAll('[data-player-id]').forEach(r => r.addEventListener('click', () => openPlayerDetail(r.dataset.playerId)));
-  } catch(e) { console.error(e); body.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load.</div></div>'; }
+  } catch(e) { console.error(e); body.innerHTML = fadedHtml('<div class="empty-state"><div class="empty-msg">Failed to load.</div></div>'); }
 }
 
 function abbrevPos(pos) {
@@ -468,27 +488,29 @@ function renderGameDetailShell(g) {
     : `<div class="gd-score">${g.home.score ?? '—'}<span class="sep"> - </span>${g.away.score ?? '—'}</div><div class="gd-status">${isLive ? '● Live' : 'Full Time'}</div>`;
 
   document.getElementById('game-detail-content').innerHTML = `
-    <div class="gd-header">
-      <div class="gd-tournament-row">${g.tournament?.name ?? ''} · ${g.matchday?.name ?? ''}</div>
-      <div class="gd-teams">
-        <div class="gd-team">
-          <img class="gd-logo" src="${g.home.logo}" alt="" onerror="this.style.opacity='.2'">
-          <div class="gd-team-name">${g.home.name ?? '—'}</div>
+    <div class="detail-fade-in">
+      <div class="gd-header">
+        <div class="gd-tournament-row">${g.tournament?.name ?? ''} · ${g.matchday?.name ?? ''}</div>
+        <div class="gd-teams">
+          <div class="gd-team">
+            <img class="gd-logo" src="${g.home.logo}" alt="" onerror="this.style.opacity='.2'">
+            <div class="gd-team-name">${g.home.name ?? '—'}</div>
+          </div>
+          <div class="gd-score-center">${scoreSection}</div>
+          <div class="gd-team">
+            <img class="gd-logo" src="${g.away.logo}" alt="" onerror="this.style.opacity='.2'">
+            <div class="gd-team-name">${g.away.name ?? '—'}</div>
+          </div>
         </div>
-        <div class="gd-score-center">${scoreSection}</div>
-        <div class="gd-team">
-          <img class="gd-logo" src="${g.away.logo}" alt="" onerror="this.style.opacity='.2'">
-          <div class="gd-team-name">${g.away.name ?? '—'}</div>
-        </div>
+        <div class="gd-date">${fmtDateLong(g.date)}${g.stadium ? ' · ' + (g.stadium.name ?? '') : ''}</div>
       </div>
-      <div class="gd-date">${fmtDateLong(g.date)}${g.stadium ? ' · ' + (g.stadium.name ?? '') : ''}</div>
-    </div>
-    <div class="gd-tabs" id="gd-tabs">
-      <div class="gd-tab active" data-gtab="lineup">Lineup</div>
-      <div class="gd-tab" data-gtab="stats">Stats</div>
-      <div class="gd-tab" data-gtab="players">Players</div>
-    </div>
-    <div class="gd-body" id="gd-body"></div>`;
+      <div class="gd-tabs" id="gd-tabs">
+        <div class="gd-tab active" data-gtab="lineup">Lineup</div>
+        <div class="gd-tab" data-gtab="stats">Stats</div>
+        <div class="gd-tab" data-gtab="players">Players</div>
+      </div>
+      <div class="gd-body" id="gd-body"></div>
+    </div>`;
 
   document.querySelectorAll('.gd-tab[data-gtab]').forEach(t => {
     t.addEventListener('click', () => {
@@ -504,16 +526,14 @@ function renderGameDetailShell(g) {
 function renderGDBody(g) {
   const body = document.getElementById('gd-body');
   if (!body) return;
-  if (gameDetailTab === 'lineup')  body.innerHTML = renderPitchLineup(g);
-  else if (gameDetailTab === 'stats')   body.innerHTML = renderStatsTab(g);
-  else if (gameDetailTab === 'players') body.innerHTML = renderPlayersTab(g);
+  if (gameDetailTab === 'lineup')  body.innerHTML = fadedHtml(renderPitchLineup(g));
+  else if (gameDetailTab === 'stats')   body.innerHTML = fadedHtml(renderStatsTab(g));
+  else if (gameDetailTab === 'players') body.innerHTML = fadedHtml(renderPlayersTab(g));
   // re-trigger tab-in animation
   body.style.animation = 'none';
   body.offsetHeight; // reflow
   body.style.animation = '';
-  body.querySelectorAll('.pitch-player-node[data-player-id]').forEach(n =>
-    n.addEventListener('click', () => openPlayerDetail(n.dataset.playerId, league)));
-  body.querySelectorAll('.sub-row[data-player-id]').forEach(n =>
+  body.querySelectorAll('[data-player-id]').forEach(n =>
     n.addEventListener('click', () => openPlayerDetail(n.dataset.playerId, league)));
 }
 
@@ -584,7 +604,7 @@ function renderPitchLineup(g) {
   function renderPitchTeam(starters, reversed) {
     const rows = groupByPos(starters);
     const displayRows = reversed ? [...rows].reverse() : rows;
-    let html = `<div class="pitch-half ${reversed ? 'home' : 'away'}">`;
+    let html = `<div class="pitch-half ${reversed ? 'away' : 'home'}">`;
     if (!reversed) html += `<div class="pitch-penalty-area"></div>`;
     displayRows.forEach(row => {
       html += `<div class="pitch-row">`;
@@ -609,7 +629,7 @@ function renderPitchLineup(g) {
     const photoUrl = playerPhoto(player.playerId);
     const firstName = (player.firstName ?? '').split(' ')[0];
     const lastName  = (player.lastName  ?? '').split(' ')[0];
-    const goalIcon  = goals > 0 ? `<span style="position:absolute;top:-6px;right:-5px;display:flex;gap:1px;z-index:4">${Array(Math.min(goals,2)).fill(ICON.goalSmall).join('')}</span>` : '';
+    const goalIcon  = goals > 0 ? `<span style="position:absolute;top:-8px;right:-8px;display:flex;gap:1px;z-index:4">${Array(Math.min(goals,2)).fill(ICON.goalSmall).join('')}</span>` : '';
 
     return `
       <div class="pitch-player-node" data-player-id="${player.playerId}">
@@ -634,30 +654,20 @@ function renderPitchLineup(g) {
     const formation = rows.map(r => r.length).join('-');
     const avg = avgRating(starters);
     const rc = avg ? ratingClass(parseFloat(avg)) : 'r-gray';
-    if (reversed) {
-      return `
-        <div class="pitch-th-side away">
-          <img class="pitch-th-logo" src="${logo}" alt="" onerror="this.style.opacity='.3'">
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
-            <span class="pitch-th-name">${name}</span>
-            <span class="pitch-th-formation">${formation}</span>
-          </div>
-          ${avg ? `<div class="pitch-th-rating ${rc}">${avg}</div>` : ''}
-        </div>`;
-    }
+    const align = reversed ? 'flex-end' : 'flex-start';
+
     return `
-      <div class="pitch-th-side home">
-        ${avg ? `<div class="pitch-th-rating ${rc}">${avg}</div>` : ''}
+      <div class="pitch-th-side ${reversed ? 'away' : 'home'}">
         <img class="pitch-th-logo" src="${logo}" alt="" onerror="this.style.opacity='.3'">
-        <div style="display:flex;flex-direction:column;gap:1px">
+        <div style="display:flex;flex-direction:column;align-items:${align};gap:1px">
           <span class="pitch-th-name">${name}</span>
           <span class="pitch-th-formation">${formation}</span>
         </div>
+        ${avg ? `<div class="pitch-th-rating ${rc}">${avg}</div>` : ''}
       </div>`;
   }
 
   const subArrowSvg = `<svg viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2 6l4 4 4-4" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-
   const renderSubCol = (subs, label) => {
     if (!subs.length) return `<div class="subs-col"></div>`;
     let c = `<div class="subs-col">`;
@@ -701,9 +711,9 @@ function renderPitchLineup(g) {
   </div>`;
 
   html += `<div class="pitch-field">`;
-  html += renderPitchTeam(awayStart, false);
+  html += renderPitchTeam(homeStart, false);
   html += `<div class="pitch-divider"></div>`;
-  html += renderPitchTeam(homeStart, true);
+  html += renderPitchTeam(awayStart, true);
   html += `</div>`; // pitch-field
 
   if (homeSubs.length || awaySubs.length) {
@@ -806,7 +816,10 @@ function renderStatsTab(g) {
         <div class="event-player-row">
           ${isHome ? `<img class="ep-photo" src="${playerPhoto(p.id ?? '')}" loading="lazy" onerror="this.src='${playerPhoto('default')}'">` : `<div style="width:30px;flex-shrink:0"></div>`}
           ${isHome ? `<div class="ep-info"><div class="ep-name">${p.firstName} ${p.lastName}</div><div class="ep-team">${g.home.name}</div></div>` : `<div class="ep-info"></div>`}
-          <div class="ep-events">${Array(p.goals).fill(ICON.goal).join('')}</div>
+          <div class="ep-events">
+            ${Array(p.goals).fill(ICON.goal).join('')}
+            ${fmtMins(p.goalMinutes)}
+          </div>
           ${!isHome ? `<div class="ep-info" style="text-align:right"><div class="ep-name">${p.firstName} ${p.lastName}</div><div class="ep-team">${g.away.name}</div></div>` : `<div class="ep-info"></div>`}
           ${!isHome ? `<img class="ep-photo" src="${playerPhoto(p.id ?? '')}" loading="lazy" onerror="this.src='${playerPhoto('default')}'">` : `<div style="width:30px;flex-shrink:0"></div>`}
         </div>`;
@@ -840,25 +853,26 @@ function renderPlayersTab(g) {
 
   const playerRow = p => {
     const pts = p.points ?? 0;
-    const rating = pts > 0 ? ptsToRating(pts) : null;
-    const rClass = rating ? ratingClass(rating) : 'r-gray';
+    const rating = pts > 0 ? ptsToRating(pts) : '5.0';
+    const rClass = ratingClass(rating);
     const isDNP = p.participation === 'ATTENDED_NOT_PLAYED';
     const isSub = p.participation === 'SUBSTITUTE';
     const pLabel = participationLabel[p.participation] ?? 'SUB';
-    const photo = playerPhoto(p.playerId ?? p.id ?? '');
+    const pid = p.playerId ?? p.id ?? '';
+    const photo = playerPhoto(pid);
 
     const events = [
-      p.goals > 0   ? `<span class="prow-event">${ICON.goalSmall.replace('width="13"','width="11"').replace('height="13"','height="11"')} ${p.goals > 1 ? p.goals : ''}</span>` : '',
-      p.assists > 0 ? `<span class="prow-event assist">${ICON.assist.replace('width="15"','width="11"').replace('height="15"','height="11"')} ${p.assists > 1 ? p.assists : ''}</span>` : '',
-      p.ownGoals > 0 ? `<span class="prow-event og">${ICON.ownGoal} ${p.ownGoals > 1 ? p.ownGoals : ''}</span>` : '',
-      p.yellowCards > 0 ? `<span class="prow-event">${ICON.yellowCard}</span>` : '',
-      p.redCards > 0    ? `<span class="prow-event">${ICON.redCard}</span>`    : '',
+      p.goals > 0   ? `<span class="prow-event">${ICON.goalSmall}${fmtMins(p.goalMinutes)}</span>` : '',
+      p.assists > 0 ? `<span class="prow-event assist">${ICON.assist}</span>` : '',
+      p.ownGoals > 0 ? `<span class="prow-event og">${ICON.ownGoal}</span>` : '',
+      p.yellowCards > 0 ? `<span class="prow-event">${ICON.yellowCard}${fmtMins(p.yellowCardMinutes)}</span>` : '',
+      p.redCards > 0    ? `<span class="prow-event">${ICON.redCard}${fmtMins(p.redCardMinutes)}</span>`    : '',
       p.isCleanSheet ? `<span class="prow-event cs">CS</span>` : '',
-      p.penaltiesStopped > 0 ? `<span class="prow-event ps">P.S</span>` : '',
+      p.penaltiesStopped > 0 ? `<span class="prow-event ps">PS</span>` : '',
     ].filter(Boolean).join('');
 
     return `
-      <div class="prow ${isDNP ? 'prow-dnp' : ''}">
+      <div class="prow ${isDNP ? 'prow-dnp' : ''}" data-player-id="${pid}" style="cursor:pointer">
         <span class="prow-badge ${isSub ? 'prow-badge-sub' : isDNP ? 'prow-badge-dnp' : ''}">${pLabel}</span>
         <img class="prow-photo" src="${photo}" loading="lazy" alt="" onerror="this.src='${playerPhoto('default')}'">
         <div class="prow-info">
@@ -866,7 +880,7 @@ function renderPlayersTab(g) {
           <div class="prow-meta">${p.jerseyNumber ? `<span class="prow-jersey">#${p.jerseyNumber}</span>` : ''}${p.position ? `<span>${p.position}</span>` : ''}</div>
         </div>
         <div class="prow-events">${events}</div>
-        ${rating ? `<div class="prow-rating ${rClass}">${rating}</div>` : '<div></div>'}
+        ${ratingBadge(rating, rClass, 'sm')}
       </div>`;
   };
 
@@ -923,6 +937,8 @@ async function openPlayerDetail(playerId, site) {
     const games   = ts.gamesPlayed ?? 0;
     const yellow  = ts.yellowCards ?? 0;
     const red     = ts.redCards ?? 0;
+    const ownGoals= ts.ownGoals ?? 0;
+    const cleanSheets = ts.cleanSheets ?? 0;
     const jersey  = ts.jerseyNumber ?? p.team.jerseyNumber ?? '';
 
     // W/L/D from records object (keys are site names)
@@ -934,70 +950,120 @@ async function openPlayerDetail(playerId, site) {
     // Team of the week awards
     const totw = (awards?.teamsOfTheWeek ?? []);
 
-    // Per-game history — only played games (points field exists, game finalized)
-    const gameLogs = Array.isArray(history)
-      ? history.filter(h => h.game?.gameFinalized).sort((a,b) => (b.matchday?.matchdayOrder??0)-(a.matchday?.matchdayOrder??0))
+    // Per-game history — all games sorted newest first
+    const allHistory = Array.isArray(history)
+      ? [...history].sort((a,b) => (b.matchday?.matchdayOrder??0)-(a.matchday?.matchdayOrder??0))
       : [];
+    const gameLogs = allHistory.filter(h => h.game?.gameFinalized);
+    const upcoming = allHistory.filter(h => !h.game?.gameFinalized).slice(0, 1);
 
-    const gameLogHtml = gameLogs.length ? `
-      <div class="pd-section-title">Match Log</div>
-      <div class="pd-game-log">
-        ${gameLogs.map(h => {
-          const gPts = h.points ?? 0;
-          const gRating = gPts > 0 ? ptsToRating(gPts) : '5.0';
-          const gClass  = ratingClass(gRating);
-          const isHome  = h.team?.id === h.game?.teamOne?.id;
-          const opp     = isHome ? h.game?.teamTwo : h.game?.teamOne;
-          const myGoals = isHome ? h.game?.goalsTeamOne : h.game?.goalsTeamTwo;
-          const oppGoals= isHome ? h.game?.goalsTeamTwo : h.game?.goalsTeamOne;
-          const result  = myGoals > oppGoals ? 'W' : myGoals < oppGoals ? 'L' : 'D';
-          const rCol    = result==='W'?'#16a34a':result==='L'?'#ef4444':'#6b7280';
-          return `
-          <div class="pd-game-row">
-            <span class="pd-game-result" style="color:${rCol}">${result}</span>
-            <span class="pd-game-score">${myGoals}-${oppGoals}</span>
-            <span class="pd-game-opp">${opp?.name ?? '—'}</span>
+    const posFullName = { DEF: 'Defender', MED: 'Midfielder', DEL: 'Forward', POR: 'Goalkeeper' };
+    const footName = { '1': 'Right', '2': 'Left', '3': 'Both' };
+
+    const logRow = (h, isPending = false) => {
+      const gPts    = h.points ?? 0;
+      const gRating = (!isPending && gPts > 0) ? ptsToRating(gPts) : isPending ? null : '5.0';
+      const gClass  = gRating ? ratingClass(gRating) : '';
+      const isHome  = h.team?.id === h.game?.teamOne?.id;
+      const opp     = isHome ? h.game?.teamTwo : h.game?.teamOne;
+      const myGoals = isHome ? h.game?.goalsTeamOne : h.game?.goalsTeamTwo;
+      const oppGoals= isHome ? h.game?.goalsTeamTwo : h.game?.goalsTeamOne;
+      const result  = isPending ? null : myGoals > oppGoals ? 'W' : myGoals < oppGoals ? 'L' : 'D';
+      const rColMap = { W: '#16a34a', L: '#ef4444', D: '#6b7280' };
+      const rBg     = { W: 'rgba(22,163,74,0.12)', L: 'rgba(239,68,68,0.12)', D: 'rgba(107,114,128,0.08)' };
+      const events  = [
+        h.goals > 0       ? `${ICON.goalSmall}${fmtMins(h.goalMinutes)}` : '',
+        h.assists > 0     ? `${ICON.assist}` : '',
+        h.yellowCards > 0 ? `${ICON.yellowCard}${fmtMins(h.yellowCardMinutes)}` : '',
+        h.redCards > 0    ? `${ICON.redCard}${fmtMins(h.redCardMinutes)}` : '',
+        h.isCleanSheet    ? `<span class="prow-event cs">CS</span>` : '',
+      ].filter(Boolean).join('');
+
+      return `
+        <div class="pd-game-row ${isPending ? 'pd-game-pending' : ''}" style="${result ? `background:${rBg[result]}` : ''}">
+          <div class="pd-game-left">
+            ${result ? `<span class="pd-game-result-pill" style="background:${rColMap[result]}">${result}</span>` : `<span class="pd-game-result-pill" style="background:#374151">—</span>`}
+            <div class="pd-game-score-block">
+              <span class="pd-game-score">${isPending ? '—' : `${myGoals}–${oppGoals}`}</span>
+              <span class="pd-game-opp">${opp?.name ?? '—'}</span>
+            </div>
+          </div>
+          <div class="pd-game-right">
             <span class="pd-game-md">${h.matchday?.name ?? ''}</span>
-            <div class="pitch-rating ${gClass}" style="position:static;min-width:32px;height:18px;font-size:10px">${gRating}</div>
-            ${h.goals ? `<span style="font-size:11px">${ICON.goalSmall.repeat(Math.min(h.goals,3))}</span>` : ''}
-            ${h.yellowCards ? ICON.yellowCard : ''}${h.redCards ? ICON.redCard : ''}
-          </div>`;
-        }).join('')}
-      </div>` : '';
+            <div class="pd-game-events">${events}</div>
+            ${gRating ? ratingBadge(gRating, gClass, 'sm') : ''}
+          </div>
+        </div>`;
+    };
 
     const totwHtml = totw.length ? `
       <div class="pd-section-title">Team of the Week</div>
-      ${totw.map(a => `<div class="pd-bio-row"><span class="pd-bio-label">${a.matchdayName}</span><span class="pd-bio-val">${a.tournamentName}</span></div>`).join('')}
-    ` : '';
+      <div class="pd-totw-list">
+        ${totw.map(a => `
+          <div class="pd-totw-row">
+            <svg width="16" height="16" viewBox="0 0 13 13" fill="none"><path d="M6.5,0.8 L7.9,4.6 L12,4.6 L8.7,7 L9.9,10.8 L6.5,8.4 L3.1,10.8 L4.3,7 L1,4.6 L5.1,4.6 Z" fill="#fbbf24"/></svg>
+            <span class="pd-totw-info"><b>${a.matchdayName}</b> · ${a.tournamentName}</span>
+          </div>`).join('')}
+      </div>` : '';
+
+    const gameLogHtml = (gameLogs.length || upcoming.length) ? `
+      <div class="pd-section-title">Recent Games</div>
+      <div class="pd-game-log">
+        ${upcoming.map(h => logRow(h, true)).join('')}
+        ${gameLogs.map(h => logRow(h, false)).join('')}
+      </div>` : '';
 
     wrap.innerHTML = `
-      <div class="pd-header">
-        <img class="pd-photo" src="${p.photo}" alt="" onerror="this.src='${playerPhoto('default')}'">
-        <div class="pd-info">
-          <div class="pd-name">${p.firstName} ${p.lastName}</div>
-          <div class="pd-team"><img class="pd-team-logo" src="${p.team.logo}" alt="" onerror="this.style.opacity='.2'">${p.team.name ?? '—'}${jersey ? ' · #'+jersey : ''}</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-            <div class="pd-position-badge">${p.position ?? '—'}</div>
-            <div class="pitch-rating ${rClass}" style="position:static;min-width:36px;height:22px;font-size:12px">${rating}</div>
+      <div class="detail-fade-in">
+        <div class="pd-hero">
+          <div class="pd-hero-bg" style="background-image:url('${p.photo}')"></div>
+          <div class="pd-hero-overlay"></div>
+          <div class="pd-hero-content">
+            <img class="pd-photo" src="${p.photo}" alt="" onerror="this.src='${playerPhoto('default')}'">
+            <div class="pd-info">
+              <div class="pd-name">${p.firstName} <strong>${p.lastName}</strong></div>
+              <div class="pd-team"><img class="pd-team-logo" src="${p.team.logo}" alt="" onerror="this.style.opacity='.2'">${p.team.name ?? '—'}${jersey ? ` · #${jersey}` : ''}</div>
+              <div class="pd-badges">
+                <span class="pd-position-badge">${posFullName[p.position] ?? p.position ?? '—'}</span>
+                ${ratingBadge(rating, rClass, 'lg')}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="pd-stats-grid">
-        <div class="pd-stat-cell"><div class="pd-stat-val">${goals}</div><div class="pd-stat-lbl">Goals</div></div>
-        <div class="pd-stat-cell"><div class="pd-stat-val">${assists}</div><div class="pd-stat-lbl">Assists</div></div>
-        <div class="pd-stat-cell"><div class="pd-stat-val">${games}</div><div class="pd-stat-lbl">Games</div></div>
-        <div class="pd-stat-cell"><div class="pd-stat-val">${pts||'—'}</div><div class="pd-stat-lbl">Pts</div></div>
-        ${yellow ? `<div class="pd-stat-cell"><div class="pd-stat-val" style="color:#fbbf24">${yellow}</div><div class="pd-stat-lbl">Yellow</div></div>` : ''}
-        ${red    ? `<div class="pd-stat-cell"><div class="pd-stat-val" style="color:#ef4444">${red}</div><div class="pd-stat-lbl">Red</div></div>` : ''}
-        ${rec    ? `<div class="pd-stat-cell"><div class="pd-stat-val" style="font-size:13px"><span style="color:#16a34a">${rec.won}W</span> <span style="color:#6b7280">${rec.tied}D</span> <span style="color:#ef4444">${rec.lost}L</span></div><div class="pd-stat-lbl">Record</div></div>` : ''}
-      </div>
-      <div class="pd-bio">
-        ${p.dateOfBirth ? `<div class="pd-bio-row"><span class="pd-bio-label">Age</span><span class="pd-bio-val">${fmtAge(p.dateOfBirth)} years old</span></div>` : ''}
-        ${p.country     ? `<div class="pd-bio-row"><span class="pd-bio-label">Nationality</span><span class="pd-bio-val">${p.country}</span></div>` : ''}
-        ${ts.tournamentName ? `<div class="pd-bio-row"><span class="pd-bio-label">Tournament</span><span class="pd-bio-val">${ts.tournamentName}</span></div>` : ''}
-      </div>
-      ${totwHtml}
-      ${gameLogHtml}`;
+
+        <div class="pd-stat-row">
+          <div class="pd-stat-pill"><div class="pd-stat-val">${games}</div><div class="pd-stat-lbl">Games</div></div>
+          <div class="pd-stat-pill"><div class="pd-stat-val">${goals}</div><div class="pd-stat-lbl">Goals</div></div>
+          <div class="pd-stat-pill"><div class="pd-stat-val">${assists}</div><div class="pd-stat-lbl">Assists</div></div>
+          <div class="pd-stat-pill"><div class="pd-stat-val">${pts||0}</div><div class="pd-stat-lbl">Pts</div></div>
+        </div>
+
+        ${rec ? `
+        <div class="pd-record-bar">
+          <div class="pd-record-seg" style="flex:${rec.won};background:#16a34a" title="${rec.won} Wins"></div>
+          <div class="pd-record-seg" style="flex:${rec.tied};background:#4b5563" title="${rec.tied} Draws"></div>
+          <div class="pd-record-seg" style="flex:${rec.lost};background:#ef4444" title="${rec.lost} Losses"></div>
+        </div>
+        <div class="pd-record-legend">
+          <span style="color:#16a34a">${rec.won}W</span>
+          <span style="color:#9ca3af">${rec.tied}D</span>
+          <span style="color:#ef4444">${rec.lost}L</span>
+        </div>` : ''}
+
+        <div class="pd-bio">
+          ${p.dateOfBirth ? `<div class="pd-bio-row"><span class="pd-bio-label">Age</span><span class="pd-bio-val">${fmtAge(p.dateOfBirth)} yrs</span></div>` : ''}
+          ${p.country     ? `<div class="pd-bio-row"><span class="pd-bio-label">Nationality</span><span class="pd-bio-val">${p.country}</span></div>` : ''}
+          ${ts.preferredFootName ?? p.preferredFootName ? `<div class="pd-bio-row"><span class="pd-bio-label">Preferred foot</span><span class="pd-bio-val">${ts.preferredFootName ?? footName[p.preferredFootId] ?? '—'}</span></div>` : ''}
+          ${yellow ? `<div class="pd-bio-row"><span class="pd-bio-label">Yellow cards</span><span class="pd-bio-val" style="display:flex;align-items:center;gap:5px">${yellow} ${ICON.yellowCard}</span></div>` : ''}
+          ${red    ? `<div class="pd-bio-row"><span class="pd-bio-label">Red cards</span><span class="pd-bio-val" style="display:flex;align-items:center;gap:5px">${red} ${ICON.redCard}</span></div>` : ''}
+          ${cleanSheets ? `<div class="pd-bio-row"><span class="pd-bio-label">Clean sheets</span><span class="pd-bio-val">${cleanSheets}</span></div>` : ''}
+          ${ownGoals ? `<div class="pd-bio-row"><span class="pd-bio-label">Own goals</span><span class="pd-bio-val">${ownGoals}</span></div>` : ''}
+          ${ts.tournamentName ? `<div class="pd-bio-row"><span class="pd-bio-label">Tournament</span><span class="pd-bio-val">${ts.tournamentName}</span></div>` : ''}
+        </div>
+
+        ${totwHtml}
+        ${gameLogHtml}
+      </div>`;
   } catch(e) {
     console.error(e);
     wrap.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load player.</div></div>';
@@ -1028,7 +1094,7 @@ async function loadTeams() {
         ${t.longName && t.longName !== t.name ? `<div class="team-card-sub">${t.longName}</div>` : ''}
       </div>`).join('');
     html += '</div>';
-    document.getElementById('view-teams').innerHTML = html;
+    document.getElementById('view-teams').innerHTML = fadedHtml(html);
   } catch(e) { console.error(e); fail('view-teams'); }
 }
 
