@@ -18,8 +18,8 @@ node server.js  # runs on http://localhost:3000
 
 ## Running Tests
 ```bash
-node test_app.cjs        # basic app test
-node test_puppeteer.cjs # browser test (requires server running)
+node scripts/test_app.cjs          # basic app test
+node scripts/test_puppeteer.cjs    # browser test (requires server running)
 ```
 
 ## Important Conventions
