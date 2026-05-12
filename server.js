@@ -285,14 +285,25 @@ async function getNewsArticle(id) {
   return { ...normalizeNews(n), content: n.content ?? null, views: n.numberOfViews ?? 0 };
 }
 
-async function getTeam(teamId) {
-  const teams = await up(`/teams/${teamId}`);
-  if (!teams) return null;
-  return normalizeTeam(teams);
+async function getTeam(teamId, siteId) {
+  if (siteId) {
+    const teams = await getTeams(siteId);
+    return teams.find(t => t.id === teamId) ?? null;
+  }
+  try {
+    const data = await up(`/teams/${teamId}`);
+    return data ? normalizeTeam(data) : null;
+  } catch {
+    return null;
+  }
 }
 
-async function getTeamSquad(teamId) {
-  const raw = await up(`/teams/${teamId}/squad`).catch(() => []);
+async function getTeamSquad(teamId, siteId) {
+  let raw = await up(`/teams/${teamId}/squad`).catch(() => null);
+  if (!raw?.length && siteId) {
+    const s = resolveSite(siteId);
+    raw = await up(`/sites/${s}/teams/${teamId}/squad`).catch(() => []);
+  }
   return arr(raw).map(p => ({
     id: p.id, firstName: p.firstName, lastName: p.lastName,
     position: p.position?.name ?? (typeof p.position === 'string' ? p.position : null),
@@ -301,8 +312,10 @@ async function getTeamSquad(teamId) {
   }));
 }
 
-async function getTeamRecentGames(teamId) {
-  const t = await getDefaultTournament('ligaplus').catch(() => null);
+async function getTeamRecentGames(teamId, siteId) {
+  const t = siteId
+    ? await getDefaultTournament(siteId).catch(() => null)
+    : await getDefaultTournament('ligaplus').catch(() => null);
   if (!t?.id) return [];
   const raw = await upCached('/games/all', 180000);
   const allGames = arr(raw?.elements ?? raw);
@@ -310,17 +323,19 @@ async function getTeamRecentGames(teamId) {
   return allGames
     .filter(g => {
       const isTeam = g.teamOne?.id == teamId || g.teamTwo?.id == teamId;
-      return isTeam && (statusId(g) === 1 || statusId(g) === 4 || statusId(g) === 5 || statusId(g) === 6);
+      const isTournament = g.tournament?.id == t.id;
+      return isTeam && isTournament && PLAYED.has(statusId(g));
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 10)
     .map(normalizeGame);
 }
 
-async function getTeamStats(teamId) {
-  const t = await getDefaultTournament('ligaplus').catch(() => null);
+async function getTeamStats(teamId, siteId) {
+  const s = siteId ? resolveSite(siteId) : 'ligaplus';
+  const t = await getDefaultTournament(siteId || 'ligaplus').catch(() => null);
   if (!t?.id) return {};
-  const stats = await up(`/sites/ligaplus/tournaments/${t.id}/teams/${teamId}/statistics`).catch(() => ({}));
+  const stats = await up(`/sites/${s}/tournaments/${t.id}/teams/${teamId}/statistics`).catch(() => ({}));
   return {
     played: stats.gamesPlayed ?? stats.played ?? 0,
     won: stats.gamesWon ?? stats.won ?? 0,
@@ -331,8 +346,10 @@ async function getTeamStats(teamId) {
   };
 }
 
-async function getTeamUpcomingGames(teamId) {
-  const t = await getDefaultTournament('ligaplus').catch(() => null);
+async function getTeamUpcomingGames(teamId, siteId) {
+  const t = siteId
+    ? await getDefaultTournament(siteId).catch(() => null)
+    : await getDefaultTournament('ligaplus').catch(() => null);
   if (!t?.id) return [];
   const raw = await upCached('/games/all', 180000);
   const allGames = arr(raw?.elements ?? raw);
@@ -340,7 +357,8 @@ async function getTeamUpcomingGames(teamId) {
   return allGames
     .filter(g => {
       const isTeam = g.teamOne?.id == teamId || g.teamTwo?.id == teamId;
-      return isTeam && statusId(g) === 0;
+      const isTournament = g.tournament?.id == t.id;
+      return isTeam && isTournament && statusId(g) === 0;
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(0, 5)
@@ -383,11 +401,11 @@ app.get('/api/leagues/:site/players/:id/history',        route(req => { const s 
 app.get('/api/leagues/:site/players/:id/awards',         route(req => { const s = resolveSite(req.params.site); return up(`/sites/${s}/players/${req.params.id}/awards`); }));
 app.get('/api/leagues/:site/players/:id/records',        route(req => up(`/sites/${req.params.site}/players/${req.params.id}/games/records`)));
 app.get('/api/news/:id',                         route(req   => getNewsArticle(req.params.id)));
-app.get('/api/teams/:id',                        route(req   => getTeam(req.params.id)));
-app.get('/api/teams/:id/squad',                 route(req   => getTeamSquad(req.params.id)));
-app.get('/api/teams/:id/games/recent',           route(req   => getTeamRecentGames(req.params.id)));
-app.get('/api/teams/:id/stats',                 route(req   => getTeamStats(req.params.id)));
-app.get('/api/teams/:id/games/upcoming',        route(req   => getTeamUpcomingGames(req.params.id)));
+app.get('/api/teams/:id',                        route(req   => getTeam(req.params.id, req.query.site)));
+app.get('/api/teams/:id/squad',                 route(req   => getTeamSquad(req.params.id, req.query.site)));
+app.get('/api/teams/:id/games/recent',           route(req   => getTeamRecentGames(req.params.id, req.query.site)));
+app.get('/api/teams/:id/stats',                 route(req   => getTeamStats(req.params.id, req.query.site)));
+app.get('/api/teams/:id/games/upcoming',        route(req   => getTeamUpcomingGames(req.params.id, req.query.site)));
 
 app.use(express.static(join(__dirname, 'public')));
 

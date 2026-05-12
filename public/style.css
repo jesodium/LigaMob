@@ -2165,3 +2165,15 @@ img { display: block; }
   .pcard-name { font-size: 10px; max-width: 68px; }
   .pteam-section-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: var(--s-2); padding: var(--s-3); }
 }
+
+/* ── Clickable team hover ──────────────────────────────────────────────── */
+.hero-team[data-team-id]:hover .hero-logo { transform: scale(1.1); }
+.hero-team[data-team-id]:hover .hero-team-name { color: var(--accent); }
+.gd-team[data-team-id]:hover { opacity: .8; }
+.gd-team[data-team-id]:hover .gd-team-name { color: var(--accent); }
+.pd-team[data-team-id]:hover { opacity: .8; }
+.pd-team[data-team-id]:hover .pd-team-logo { filter: brightness(1.3); }
+.s-team-cell:hover { color: var(--accent); }
+.s-team-cell:hover img { filter: brightness(1.2); }
+.mrow-home[data-team-id]:hover .mrow-name,
+.mrow-away[data-team-id]:hover .mrow-name { color: var(--accent); }

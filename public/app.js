@@ -226,12 +226,12 @@ function matchRow(g) {
   return `
     <div class="match-row fade-item ${isLive ? 'live-row' : ''}" data-game-id="${g.id}" role="button" tabindex="0">
       ${statusHtml}
-      <div class="mrow-home">
+      <div class="mrow-home" data-team-id="${g.home.id}" style="cursor:pointer">
         <span class="mrow-name">${g.home.name ?? '—'}</span>
         <img class="mrow-logo" src="${g.home.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
       </div>
       ${centerHtml}
-      <div class="mrow-away">
+      <div class="mrow-away" data-team-id="${g.away.id}" style="cursor:pointer">
         <img class="mrow-logo" src="${g.away.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
         <span class="mrow-name">${g.away.name ?? '—'}</span>
       </div>
@@ -386,7 +386,7 @@ async function loadHome() {
             </div>
           </div>
           <div class="hero-match">
-            <div class="hero-team">
+            <div class="hero-team" data-team-id="${featured.home.id}" style="cursor:pointer">
               <img class="hero-logo" src="${featured.home.logo}" alt="" onerror="this.style.opacity='.2'">
               <div class="hero-team-name">${featured.home.name ?? '—'}</div>
             </div>
@@ -397,7 +397,7 @@ async function loadHome() {
                 : `<div class="hero-time">${fmtTime(featured.date)}</div>
                    <div class="hero-status">${fmtDate(featured.date)}</div>`}
             </div>
-            <div class="hero-team">
+            <div class="hero-team" data-team-id="${featured.away.id}" style="cursor:pointer">
               <img class="hero-logo" src="${featured.away.logo}" alt="" onerror="this.style.opacity='.2'">
               <div class="hero-team-name">${featured.away.name ?? '—'}</div>
             </div>
@@ -419,14 +419,14 @@ async function loadHome() {
       html += recent.map(g => `
         <div class="result-chip" data-game-id="${g.id}">
           <div class="result-chip-teams">
-            <img class="result-chip-logo" src="${g.home.logo}" alt="" onerror="this.style.opacity='.15'">
+            <img class="result-chip-logo" src="${g.home.logo}" alt="" onerror="this.style.opacity='.15'" data-team-id="${g.home.id}" style="cursor:pointer">
             <span class="result-chip-score">${g.home.score} - ${g.away.score}</span>
-            <img class="result-chip-logo" src="${g.away.logo}" alt="" onerror="this.style.opacity='.15'">
+            <img class="result-chip-logo" src="${g.away.logo}" alt="" onerror="this.style.opacity='.15'" data-team-id="${g.away.id}" style="cursor:pointer">
           </div>
           <div class="result-chip-names">
-            <span class="result-chip-name">${shortName(g.home.name)}</span>
+            <span class="result-chip-name" data-team-id="${g.home.id}" style="cursor:pointer">${shortName(g.home.name)}</span>
             <span class="result-chip-sep">v</span>
-            <span class="result-chip-name away">${shortName(g.away.name)}</span>
+            <span class="result-chip-name away" data-team-id="${g.away.id}" style="cursor:pointer">${shortName(g.away.name)}</span>
           </div>
         </div>`).join('');
       html += '</div></div>';
@@ -591,6 +591,10 @@ async function loadStandings() {
     document.getElementById('view-standings').querySelectorAll('[data-player-id]').forEach(node => {
       node.addEventListener('click', () => openPlayerDetail(node.dataset.playerId, league));
     });
+    // Bind team clicks in standings
+    document.getElementById('view-standings').querySelectorAll('[data-team-id]').forEach(node => {
+      node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
+    });
   } catch(e) { console.error(e); fail('view-standings'); }
 }
 
@@ -612,15 +616,17 @@ function standingsGroupHtml(group, { preview = false } = {}) {
       html += `
         <div class="standings-row-compact ${zone}">
           <span class="s-pos">${pos}</span>
-          <img class="s-logo" src="${r.team.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
-          <span class="s-team-name">${r.team.name ?? '—'}</span>
+          <span class="s-team-cell" data-team-id="${r.team.id}" style="cursor:pointer">
+            <img class="s-logo" src="${r.team.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
+            <span class="s-team-name">${r.team.name ?? '—'}</span>
+          </span>
           <span class="s-pts">${r.points} pts</span>
         </div>`;
     } else {
       html += `
         <div class="standings-row ${zone}">
           <span class="s-pos">${pos}</span>
-          <span class="s-team-cell">
+          <span class="s-team-cell" data-team-id="${r.team.id}" style="cursor:pointer">
             <img class="s-logo" src="${r.team.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
             <span class="s-team-name">${r.team.name ?? '—'}</span>
           </span>
@@ -739,12 +745,12 @@ function renderGameDetailShell(g) {
       <div class="gd-header">
         <div class="gd-tournament-row">${g.tournament?.name ?? ''} · ${g.matchday?.name ?? ''}</div>
         <div class="gd-teams">
-          <div class="gd-team">
+          <div class="gd-team" data-team-id="${g.home.id}" style="cursor:pointer">
             <img class="gd-logo" src="${g.home.logo}" alt="" onerror="this.style.opacity='.2'">
             <div class="gd-team-name">${g.home.name ?? '—'}</div>
           </div>
           <div class="gd-score-center">${scoreSection}</div>
-          <div class="gd-team">
+          <div class="gd-team" data-team-id="${g.away.id}" style="cursor:pointer">
             <img class="gd-logo" src="${g.away.logo}" alt="" onerror="this.style.opacity='.2'">
             <div class="gd-team-name">${g.away.name ?? '—'}</div>
           </div>
@@ -765,6 +771,13 @@ function renderGameDetailShell(g) {
       t.classList.add('active');
       gameDetailTab = t.dataset.gtab;
       renderGDBody(g);
+    });
+  });
+  document.querySelectorAll('#game-detail-content [data-team-id]').forEach(n => {
+    n.addEventListener('click', e => {
+      e.stopPropagation();
+      closeOverlay('game-overlay');
+      openTeamDetail(n.dataset.teamId, league);
     });
   });
   renderGDBody(g);
@@ -1180,6 +1193,12 @@ async function openPlayerDetail(playerId, site) {
         closeOverlay('player-overlay');
         openGameDetail(n.dataset.gameId);
       }));
+    content.querySelectorAll('[data-team-id]').forEach(n =>
+      n.addEventListener('click', e => {
+        e.stopPropagation();
+        closeOverlay('player-overlay');
+        openTeamDetail(n.dataset.teamId, league);
+      }));
   } catch(e) {
     console.error(e);
     content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load player.</div></div>';
@@ -1267,7 +1286,7 @@ function renderPlayerOverlay(p, seasonArr, history, awards, records) {
           <img class="pd-photo" src="${p.photo}" alt="" onerror="this.src='${playerPhoto('default')}'">
           <div class="pd-info">
             <div class="pd-name">${p.firstName} <strong>${p.lastName}</strong></div>
-            <div class="pd-team"><img class="pd-team-logo" src="${p.team.logo}" alt="" onerror="this.style.opacity='.2'">${p.team.name ?? '—'}${jersey ? ` · #${jersey}` : ''}</div>
+            <div class="pd-team" data-team-id="${p.team.id}" style="cursor:pointer"><img class="pd-team-logo" src="${p.team.logo}" alt="" onerror="this.style.opacity='.2'">${p.team.name ?? '—'}${jersey ? ` · #${jersey}` : ''}</div>
             <div class="pd-badges">
               <span class="pd-position-badge">${posFullName[p.position] ?? p.position ?? '—'}</span>
               ${ratingBadge(rating, rClass, 'lg')}
@@ -1312,17 +1331,18 @@ function renderPlayerOverlay(p, seasonArr, history, awards, records) {
 }
 
 // ─── TEAM DETAIL ──────────────────────────────────────────────────────────────
-async function openTeamDetail(teamId) {
+async function openTeamDetail(teamId, site) {
   const content = document.getElementById('team-detail-content');
   content.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   openOverlay('team-overlay');
+  const s = site || league;
   try {
     const [team, squad, recentGames, upcomingGames, stats] = await Promise.all([
-      api(`/api/teams/${teamId}`).catch(() => null),
-      api(`/api/teams/${teamId}/squad`).catch(() => []),
-      api(`/api/teams/${teamId}/games/recent`).catch(() => []),
-      api(`/api/teams/${teamId}/games/upcoming`).catch(() => []),
-      api(`/api/teams/${teamId}/stats`).catch(() => ({})),
+      api(`/api/teams/${teamId}?site=${s}`).catch(() => null),
+      api(`/api/teams/${teamId}/squad?site=${s}`).catch(() => []),
+      api(`/api/teams/${teamId}/games/recent?site=${s}`).catch(() => []),
+      api(`/api/teams/${teamId}/games/upcoming?site=${s}`).catch(() => []),
+      api(`/api/teams/${teamId}/stats?site=${s}`).catch(() => ({})),
     ]);
     content.innerHTML = renderTeamOverlay(team, squad, recentGames, upcomingGames, stats);
     content.querySelectorAll('[data-game-id]').forEach(n =>
@@ -1607,14 +1627,23 @@ function bindClickable(containerId) {
     node.addEventListener('click', () => openGameDetail(node.dataset.gameId));
     node.addEventListener('keydown', e => { if (e.key === 'Enter') openGameDetail(node.dataset.gameId); });
   });
+  el.querySelectorAll('.match-row [data-team-id]').forEach(node => {
+    node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
+  });
+  el.querySelectorAll('.result-chip [data-team-id]').forEach(node => {
+    node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
+  });
+  el.querySelectorAll('.hero-team[data-team-id]').forEach(node => {
+    node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
+  });
 }
 
 function bindTeamClickable(containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;
   el.querySelectorAll('[data-team-id]').forEach(node => {
-    node.addEventListener('click', () => openTeamDetail(node.dataset.teamId));
-    node.addEventListener('keydown', e => { if (e.key === 'Enter') openTeamDetail(node.dataset.teamId); });
+    node.addEventListener('click', () => openTeamDetail(node.dataset.teamId, league));
+    node.addEventListener('keydown', e => { if (e.key === 'Enter') openTeamDetail(node.dataset.teamId, league); });
   });
 }
 
