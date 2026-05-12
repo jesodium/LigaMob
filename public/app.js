@@ -446,8 +446,8 @@ async function loadPlayersBody() {
             <div class="p-stat-num">${main ?? 0}</div>
           </div>
           <div class="p-secondary-stats">
-            ${playersSubtab!=='goals'   ? `<div class="p-sec-stat"><div class="p-sec-val">${p.goals??0}</div><div class="p-sec-lbl">G</div></div>` : ''}
-            ${playersSubtab!=='assists' ? `<div class="p-sec-stat"><div class="p-sec-val">${p.assists??0}</div><div class="p-sec-lbl">A</div></div>` : ''}
+            ${playersSubtab!=='goals'   ? `<div class="p-sec-stat"><div class="p-sec-val">${p.goals??0}</div><div class="p-sec-lbl">${ICON.goalSmall}</div></div>` : ''}
+            ${playersSubtab!=='assists' ? `<div class="p-sec-stat"><div class="p-sec-val">${p.assists??0}</div><div class="p-sec-lbl">${ICON.assist}</div></div>` : ''}
             ${playersSubtab!=='games'   ? `<div class="p-sec-stat"><div class="p-sec-val">${p.gamesPlayed??0}</div><div class="p-sec-lbl">GP</div></div>` : ''}
           </div>
         </div>`;

@@ -151,7 +151,11 @@ async function getLeagueGames(siteId, query) {
 }
 
 async function getTeams(siteId)   { return arr(await up(`/sites/${siteId}/teams`)).map(normalizeTeam); }
-async function getPlayers(siteId) { return arr(await up(`/sites/${siteId}/players`)).map(normalizePlayerRow); }
+async function getPlayers(siteId) {
+  const t = await getDefaultTournament(siteId).catch(() => null);
+  const url = t?.id ? `/sites/${siteId}/players?tournamentId=${t.id}` : `/sites/${siteId}/players`;
+  return arr(await up(url)).map(normalizePlayerRow);
+}
 async function getNews(siteId)    { return arr(await up(`/sites/${siteId}/news`)).map(normalizeNews); }
 
 async function getResults(siteId) {
