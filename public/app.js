@@ -117,31 +117,47 @@ async function loadLeagues() {
   return leagues;
 }
 
-async function openLeaguePicker() {
-  openOverlay('league-overlay');
-  const grid = document.getElementById('league-grid');
-  grid.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
-  try {
-    const list = await loadLeagues();
-    grid.innerHTML = `<div class="detail-fade-in" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:var(--s-3);padding:var(--s-5)">
-      ${list.map(l => `
-        <div class="league-card fade-item ${l.id === league ? 'selected' : ''}" data-id="${l.id}">
-          <img class="league-card-logo" src="${l.logo}" alt="${l.name}" loading="lazy" onerror="this.style.opacity='.15'">
-          <div class="league-card-name">${l.name}</div>
-          <div class="selected-check"><svg viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5 8.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>`).join('')}
-    </div>`;
-    grid.querySelectorAll('.league-card').forEach(c => c.addEventListener('click', () => selectLeague(c.dataset.id)));
-  } catch {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load</div></div>';
+function toggleLeagueDropdown(open) {
+  const dropdown = document.getElementById('league-dropdown');
+  const trigger = document.getElementById('league-btn-pill');
+  const menu = document.getElementById('league-dropdown-menu');
+  const list = document.getElementById('league-grid');
+  
+  if (open) {
+    // Populate list if empty
+    if (list.innerHTML.trim() === '') {
+      list.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+      loadLeagues().then(leaguesList => {
+        list.innerHTML = leaguesList.map(l => `
+          <div class="league-dropdown-item" data-id="${l.id}">
+            <img src="${l.logo}" alt="${l.name}" loading="lazy" onerror="this.style.opacity='.15'">
+            <span>${l.name}</span>
+          </div>`).join('');
+        
+        list.querySelectorAll('.league-dropdown-item').forEach(item => {
+          item.addEventListener('click', () => selectLeague(item.dataset.id));
+        });
+      }).catch(() => {
+        list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3)">Failed to load</div>';
+      });
+    }
+    dropdown.classList.add('open');
+    trigger.classList.add('open');
+  } else {
+    dropdown.classList.remove('open');
+    trigger.classList.remove('open');
   }
 }
 
+async function openLeaguePicker() {
+  toggleLeagueDropdown(true);
+}
+
 function selectLeague(id) {
-  if (id === league) { closeOverlay('league-overlay'); return; }
+  if (id === league) { toggleLeagueDropdown(false); return; }
   league = id;
   clearLeagueCache();
-  closeOverlay('league-overlay');
+  toggleLeagueDropdown(false);
   updateTopbarLeague();
   loadCurrentTab();
 }
@@ -219,13 +235,42 @@ async function loadHome() {
     ]);
     let html = '';
 
+    // Quick Scores Strip - horizontal scroll of recent/live matches
+    const quickScores = results.slice(0, 12);
+    if (quickScores.length > 0) {
+      html += '<div class="quick-scores">';
+      html += quickScores.map(g => {
+        const isLive = g.status === 'live';
+        const isFinal = g.status === 'final';
+        const statusClass = isLive ? 'live' : '';
+        const statusText = isLive ? 'LIVE' : isFinal ? 'FT' : fmtTime(g.date);
+        return `
+          <div class="qs-chip ${statusClass}" data-game-id="${g.id}">
+            <img class="qs-chip-logo" src="${g.home.logo}" alt="" onerror="this.style.opacity='.2'">
+            <span class="qs-chip-teams">${shortName(g.home.name)}<span class="qs-chip-sep">-</span>${shortName(g.away.name)}</span>
+            <span class="qs-chip-score">${g.home.score ?? '—'} : ${g.away.score ?? '—'}</span>
+            <span class="qs-status">${statusText}</span>
+          </div>`;
+      }).join('');
+      html += '</div>';
+    }
+
+    // Featured Match - Hero Section
     const featured = homeData.upcomingGames?.[0] ?? results[0];
     if (featured) {
       const isFinal = featured.status === 'final';
       const isLive  = featured.status === 'live';
+      const isUpcoming = featured.status === 'upcoming';
       html += `
-        <div class="home-hero fade-item" data-game-id="${featured.id}">
-          <div class="hero-label">${isLive ? '● Live Now' : isFinal ? 'Latest Result' : 'Next Match'} · ${featured.tournament?.name ?? ''}</div>
+        <div class="hero fade-item" data-game-id="${featured.id}">
+          <div class="hero-top">
+            <div class="hero-context">
+              ${isLive 
+                ? `<span class="badge live">● LIVE</span>` 
+                : isFinal ? '<span class="badge ft">Full Time</span>' : '<span class="badge upcoming">Upcoming</span>'}
+              <span>${featured.tournament?.name ?? ''}</span>
+            </div>
+          </div>
           <div class="hero-match">
             <div class="hero-team">
               <img class="hero-logo" src="${featured.home.logo}" alt="" onerror="this.style.opacity='.2'">
@@ -234,8 +279,8 @@ async function loadHome() {
             <div class="hero-center">
               ${isFinal || isLive
                 ? `<div class="hero-score">${featured.home.score ?? '—'}<span class="sep"> - </span>${featured.away.score ?? '—'}</div>
-                   <div class="hero-status">${isLive ? '● Live' : 'Full Time'}</div>`
-                : `<div class="hero-score" style="font-size:28px;letter-spacing:2px;color:var(--text-2)">${fmtTime(featured.date)}</div>
+                   <div class="hero-status ${isLive ? 'live' : ''}">${isLive ? '● Live Now' : 'Full Time'}</div>`
+                : `<div class="hero-time">${fmtTime(featured.date)}</div>
                    <div class="hero-status">${fmtDate(featured.date)}</div>`}
             </div>
             <div class="hero-team">
@@ -243,13 +288,19 @@ async function loadHome() {
               <div class="hero-team-name">${featured.away.name ?? '—'}</div>
             </div>
           </div>
-          <div class="hero-meta">${featured.matchday?.name ?? ''} · ${featured.stadium?.name ?? fmtDate(featured.date)}</div>
+          <div class="hero-bottom">
+            <span>${featured.matchday?.name ?? ''}</span>
+            <span class="sep-dot"></span>
+            <span>${featured.stadium?.name ?? 'League Match'}</span>
+          </div>
         </div>`;
     }
 
-    const recent = results.slice(0, 8);
-    if (recent.length > 1) {
-      html += '<div class="section-label">Recent Results</div>';
+    // Recent Results Strip
+    const recent = results.slice(1, 9);
+    if (recent.length > 0) {
+      html += '<div class="section">';
+      html += '<div class="section-head"><div class="section-title">Recent Results</div></div>';
       html += '<div class="results-strip">';
       html += recent.map(g => `
         <div class="result-chip" data-game-id="${g.id}">
@@ -264,18 +315,22 @@ async function loadHome() {
             <span class="result-chip-name away">${shortName(g.away.name)}</span>
           </div>
         </div>`).join('');
-      html += '</div>';
+      html += '</div></div>';
     }
 
+    // League Table Preview
     if (homeData.standings?.length) {
-      html += '<div class="section-label">League Table</div>';
-      html += '<div style="padding:0 12px">';
+      html += '<div class="section">';
+      html += '<div class="section-head"><div class="section-title">League Table</div><a class="section-link" data-tab="standings">View all →</a></div>';
+      html += '<div style="padding:0">';
       html += standingsGroupHtml(homeData.standings[0], { preview: true });
-      html += '</div>';
+      html += '</div></div>';
     }
 
+    // News Section
     if (homeData.latestNews?.length) {
-      html += '<div class="section-label">News</div>';
+      html += '<div class="section">';
+      html += '<div class="section-head"><div class="section-title">Latest News</div></div>';
       html += '<div class="news-wrap">';
       html += homeData.latestNews.map(n => `
         <div class="news-card fade-item">
@@ -285,11 +340,26 @@ async function loadHome() {
             <div class="news-date">${fmtDate(n.date)}</div>
           </div>
         </div>`).join('');
-      html += '</div>';
+      html += '</div></div>';
     }
 
     document.getElementById('view-home').innerHTML = fadedHtml(html || '<div class="empty-state"><div class="empty-msg">Nothing to show.</div></div>');
     bindClickable('view-home');
+    
+    // Add click handler for "View all" link
+    document.querySelectorAll('.section-link[data-tab]').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const tab = link.dataset.tab;
+        document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll(`.nav-tab[data-tab="${tab}"]`).forEach(b => b.classList.add('active'));
+        document.getElementById('view-' + tab).classList.add('active');
+        document.getElementById('page-title').textContent = PAGE_TITLES[tab] ?? tab;
+        currentTab = tab;
+        loaders[tab]?.();
+      });
+    });
   } catch(e) { console.error(e); fail('view-home'); }
 }
 
@@ -365,23 +435,36 @@ function standingsGroupHtml(group, { preview = false } = {}) {
   const total = rows.length;
   let html = '<div class="group-card fade-item">';
   if (group.group) html += `<div class="group-name-row">Group ${group.group}</div>`;
-  html += `<div class="standings-header"><span>#</span><span>Team</span><span>P</span><span>W</span><span>D</span><span>L</span><span>GD</span><span>Pts</span></div>`;
+  if (!preview) {
+    html += `<div class="standings-header"><span>#</span><span>Team</span><span>P</span><span>W</span><span>D</span><span>L</span><span>GD</span><span>Pts</span></div>`;
+  }
   rows.forEach((r, i) => {
     const pos = r.position ?? i + 1;
     const gd = r.goalDiff;
     const gdClass = gd > 0 ? 'pos' : gd < 0 ? 'neg' : '';
     const zone = getZoneClass(pos, total);
-    html += `
-      <div class="standings-row ${zone}">
-        <span class="s-pos">${pos}</span>
-        <span class="s-team-cell">
+    if (preview) {
+      // Compact preview row
+      html += `
+        <div class="standings-row-compact ${zone}">
+          <span class="s-pos">${pos}</span>
           <img class="s-logo" src="${r.team.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
           <span class="s-team-name">${r.team.name ?? '—'}</span>
-        </span>
-        <span>${r.played}</span><span>${r.won}</span><span>${r.drawn}</span><span>${r.lost}</span>
-        <span class="s-gd ${gdClass}">${gd > 0 ? '+' : ''}${gd}</span>
-        <span class="s-pts">${r.points}</span>
-      </div>`;
+          <span class="s-pts">${r.points} pts</span>
+        </div>`;
+    } else {
+      html += `
+        <div class="standings-row ${zone}">
+          <span class="s-pos">${pos}</span>
+          <span class="s-team-cell">
+            <img class="s-logo" src="${r.team.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
+            <span class="s-team-name">${r.team.name ?? '—'}</span>
+          </span>
+          <span>${r.played}</span><span>${r.won}</span><span>${r.drawn}</span><span>${r.lost}</span>
+          <span class="s-gd ${gdClass}">${gd > 0 ? '+' : ''}${gd}</span>
+          <span class="s-pts">${r.points}</span>
+        </div>`;
+    }
   });
   html += '</div>';
   return html;
@@ -1099,7 +1182,7 @@ async function loadTeams() {
 }
 
 // ─── Tab nav ──────────────────────────────────────────────────────────────────
-const PAGE_TITLES = { home: 'Home', matches: 'Matches', standings: 'Standings', teams: 'Teams', players: 'Players' };
+const PAGE_TITLES = { home: 'Home', matches: 'Matches', standings: 'Table', teams: 'Teams', players: 'Players' };
 const loaders = { home: loadHome, matches: loadMatches, standings: loadStandings, teams: loadTeams, players: loadPlayers };
 
 function loadCurrentTab() { loaders[currentTab]?.(); }
@@ -1119,10 +1202,23 @@ document.querySelectorAll('.nav-tab[data-tab]').forEach(btn => {
 });
 
 // ─── Overlay wiring ───────────────────────────────────────────────────────────
-document.getElementById('league-btn').addEventListener('click', openLeaguePicker);
-document.getElementById('league-btn-mobile').addEventListener('click', openLeaguePicker);
-document.getElementById('league-scrim').addEventListener('click', () => closeOverlay('league-overlay'));
-document.getElementById('league-close').addEventListener('click', () => closeOverlay('league-overlay'));
+document.getElementById('league-btn-pill').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dropdown = document.getElementById('league-dropdown');
+  if (dropdown.classList.contains('open')) {
+    toggleLeagueDropdown(false);
+  } else {
+    toggleLeagueDropdown(true);
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('league-dropdown');
+  if (!dropdown.contains(e.target)) {
+    toggleLeagueDropdown(false);
+  }
+});
+
 document.getElementById('game-scrim').addEventListener('click',   () => closeOverlay('game-overlay'));
 document.getElementById('game-close-pill').addEventListener('click',   () => closeOverlay('game-overlay'));
 document.getElementById('player-scrim').addEventListener('click', () => closeOverlay('player-overlay'));
