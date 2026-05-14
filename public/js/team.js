@@ -109,7 +109,7 @@ function renderTeam(team, squad, recentGames, upcomingGames, stats) {
           const isHome = g.home.id === teamId;
           const opp = isHome ? g.away : g.home;
           return `
-            <div class="td-match-row" onclick="window.location.href='/game.html?id=${g.id}&league=${league}'">
+            <div class="td-match-row" onclick="window.location.href='/pages/game.html?id=${g.id}&league=${league}'">
               <div class="td-match-date">${fmtDate(g.date)}</div>
               <div class="td-match-teams">
                 <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
@@ -138,7 +138,7 @@ function renderTeam(team, squad, recentGames, upcomingGames, stats) {
             result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
           }
           return `
-            <div class="td-match-row" onclick="window.location.href='/game.html?id=${g.id}&league=${league}'">
+            <div class="td-match-row" onclick="window.location.href='/pages/game.html?id=${g.id}&league=${league}'">
               <div class="td-match-date">${fmtDate(g.date)}</div>
               <div class="td-match-teams">
                 <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
@@ -173,7 +173,7 @@ function renderTeam(team, squad, recentGames, upcomingGames, stats) {
           <div class="td-pos-label">${pos === 'POR' ? 'Goalkeepers' : pos === 'DEF' ? 'Defenders' : pos === 'MED' ? 'Midfielders' : 'Forwards'}</div>
           <div class="td-squad-list">
             ${players.map(p => `
-              <div class="td-player-row" onclick="window.location.href='/player.html?id=${p.id}&league=${league}'">
+              <div class="td-player-row" onclick="window.location.href='/pages/player.html?id=${p.id}&league=${league}'">
                 <img class="td-player-photo" src="${playerPhoto(p.id)}" alt="${p.firstName}" onerror="this.src='${playerPhoto('default')}'">
                 <div class="td-player-info">
                   <div class="td-player-name">${p.firstName} ${p.lastName}</div>

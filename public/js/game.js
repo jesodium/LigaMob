@@ -117,7 +117,7 @@ function renderGDBody(g) {
   body.offsetHeight;
   body.style.animation = '';
   body.querySelectorAll('[data-player-id]').forEach(n =>
-    n.addEventListener('click', () => window.location.href = `/player.html?id=${n.dataset.playerId}&league=${league}`));
+    n.addEventListener('click', () => window.location.href = `/pages/player.html?id=${n.dataset.playerId}&league=${league}`));
 }
 
 function fadedHtml(html) { return `<div class="detail-fade-in">${html}</div>`; }
