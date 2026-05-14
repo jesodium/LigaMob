@@ -1365,6 +1365,7 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
   if (!team) return '<div class="empty-state"><div class="empty-msg">Team not found.</div></div>';
 
   const posLabel = { 'POR': 'GK', 'DEF': 'DEF', 'MED': 'MID', 'DEL': 'FWD' };
+  const posName = { 'POR': 'Goalkeepers', 'DEF': 'Defenders', 'MED': 'Midfielders', 'DEL': 'Forwards' };
 
   const last5 = recentGames.slice(0, 5).reverse();
   const formHtml = last5.length ? `
@@ -1390,7 +1391,7 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
         ${upcomingGames.map(g => {
           const isHome = g.home.id === team.id;
           return `
-            <div class="team-match-row" data-game-id="${g.id}" style="cursor:pointer">
+            <div class="team-match-row" data-game-id="${g.id}">
               <div class="team-match-date">${fmtDate(g.date)}</div>
               <div class="team-match-teams">
                 <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
@@ -1418,7 +1419,7 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
             result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
           }
           return `
-            <div class="team-match-row" data-game-id="${g.id}" style="cursor:pointer">
+            <div class="team-match-row" data-game-id="${g.id}">
               <div class="team-match-date">${fmtDate(g.date)}</div>
               <div class="team-match-teams">
                 <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
@@ -1445,26 +1446,21 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
   const squadHtml = squad.length ? `
     <div class="team-section">
       <div class="team-section-title">Squad</div>
-      ${posOrder.map(pos => {
+      ${posOrder.flatMap(pos => {
         const players = squadByPos[pos];
-        if (!players?.length) return '';
-        return `
-          <div class="team-pos-group">
-            <div class="team-pos-label">${pos === 'POR' ? 'Goalkeepers' : pos === 'DEF' ? 'Defenders' : pos === 'MED' ? 'Midfielders' : 'Forwards'}</div>
-            <div class="team-squad-list">
-              ${players.map(p => `
-                <div class="team-player-row" data-player-id="${p.id}" style="cursor:pointer">
-                  <img class="team-player-photo" src="${playerPhoto(p.id)}" alt="${p.firstName}" onerror="this.src='${playerPhoto('default')}'">
-                  <div class="team-player-info">
-                    <div class="team-player-name">${p.firstName} ${p.lastName}</div>
-                    <div class="team-player-meta">${p.jerseyNumber ? '#' + p.jerseyNumber : ''}</div>
-                  </div>
-                  ${p.jerseyNumber ? `<div class="team-player-number">${p.jerseyNumber}</div>` : ''}
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
+        if (!players?.length) return [];
+        return [
+          `<div class="team-pos-label">${posName[pos] || pos}</div>`,
+          `<div class="team-squad-list">${players.map(p => `
+            <div class="team-player-row" data-player-id="${p.id}">
+              <img class="team-player-photo" src="${playerPhoto(p.id)}" alt="${p.firstName}" onerror="this.src='${playerPhoto('default')}'">
+              <div class="team-player-info">
+                <div class="team-player-name">${p.firstName} ${p.lastName}</div>
+                <div class="team-player-meta">${p.jerseyNumber ? '#' + p.jerseyNumber : ''}</div>
+              </div>
+              ${p.jerseyNumber ? `<div class="team-player-number">${p.jerseyNumber}</div>` : ''}
+            </div>`).join('')}</div>`
+        ];
       }).join('')}
     </div>
   ` : '';
@@ -1493,15 +1489,15 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
         </div>
         <div class="team-stat-card">
           <div class="team-stat-val">${statsData.goalsFor || 0}</div>
-          <div class="team-stat-label">Goals For</div>
+          <div class="team-stat-label">GF</div>
         </div>
         <div class="team-stat-card">
           <div class="team-stat-val">${statsData.goalsAgainst || 0}</div>
-          <div class="team-stat-label">Goals Against</div>
+          <div class="team-stat-label">GA</div>
         </div>
         <div class="team-stat-card wide">
           <div class="team-stat-val ${goalDiff > 0 ? 'pos' : goalDiff < 0 ? 'neg' : ''}">${goalDiff > 0 ? '+' : ''}${goalDiff}</div>
-          <div class="team-stat-label">Goal Difference</div>
+          <div class="team-stat-label">Goal Diff</div>
         </div>
       </div>
     </div>
@@ -1509,6 +1505,7 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
 
   return `
     <div class="detail-fade-in">
+      <div class="team-accent-bar"></div>
       <div class="team-header">
         <div class="team-header-logo">
           <img src="${team.logo}" alt="${team.name}" onerror="this.style.opacity='0.3'">

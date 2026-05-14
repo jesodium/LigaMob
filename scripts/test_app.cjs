@@ -1,8 +1,10 @@
 const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
 const fs = require('fs');
-const html = fs.readFileSync('../public/index.html', 'utf8');
-const script = fs.readFileSync('../public/app.js', 'utf8');
+const path = require('path');
+const root = path.resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'public/index.html'), 'utf8');
+const script = fs.readFileSync(path.join(root, 'public/js/app.js'), 'utf8');
 
 const virtualConsole = new jsdom.VirtualConsole();
 virtualConsole.on("error", (e) => { console.error(e); });

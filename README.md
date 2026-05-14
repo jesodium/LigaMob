@@ -8,19 +8,28 @@ FotMob parody for Liga+ and Liga10 — Panamanian school/youth football.
 .
 ├── public/             # Frontend (vanilla SPA)
 │   ├── index.html      # Main shell with overlays
-│   ├── app.js          # SPA logic, views, overlays
-│   ├── style.css       # All styles
-│   ├── game.html/js    # Standalone match detail
-│   ├── player.html/js  # Standalone player detail
-│   └── team.html/js    # Standalone team detail
+│   ├── css/
+│   │   └── style.css   # All styles
+│   ├── js/
+│   │   ├── app.js      # SPA logic, views, overlays
+│   │   ├── game.js     # Standalone match detail
+│   │   ├── player.js   # Standalone player detail
+│   │   └── team.js     # Standalone team detail
+│   └── pages/
+│       ├── game.html   # Standalone match page
+│       ├── player.html # Standalone player page
+│       └── team.html   # Standalone team page
 ├── server.js           # Express server + API proxy
 ├── scripts/            # Test / utility scripts
-├── docs/               # Design docs, API recon, notes
-│   ├── LIGAMOB_DESIGN.md
-│   ├── AGENTS.md
-│   ├── liga-10-api-recon.md
-│   ├── liga-plus-api-recon.md
-│   └── snippets/       # HTML/CSS reference snippets
+├── docs/
+│   ├── AGENTS.md       # Agent instructions
+│   └── archive/        # Design docs, API recon, reference
+│       ├── LIGAMOB_DESIGN.md
+│       ├── liga-10-api-recon.md
+│       ├── liga-plus-api-recon.md
+│       └── snippets/
+├── eslint.config.js    # ESLint config (flat)
+├── .prettierrc         # Prettier config
 └── .github/workflows/  # CI pipelines
 ```
 
