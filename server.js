@@ -297,18 +297,94 @@ async function getTeam(teamId, siteId) {
   return null;
 }
 
+// Cache for team players (key: siteId + teamId, value: players array)
+const teamPlayersCache = new Map();
+
 async function getTeamSquad(teamId, siteId) {
+  const s = resolveSite(siteId || 'ligaplus');
+  const cacheKey = `${s}:${teamId}`;
+  
+  // Check cache first (valid for 5 minutes)
+  if (teamPlayersCache.has(cacheKey)) {
+    const cached = teamPlayersCache.get(cacheKey);
+    if (Date.now() - cached.timestamp < 300000) {
+      return cached.players;
+    }
+  }
+  
+  // Try upstream squad endpoints first
   let raw = await up(`/teams/${teamId}/squad`).catch(() => null);
   if (!raw?.length && siteId) {
-    const s = resolveSite(siteId);
     raw = await up(`/sites/${s}/teams/${teamId}/squad`).catch(() => []);
   }
-  return arr(raw).map(p => ({
+  
+  // If no squad data, get players from recent game stats
+  if (!raw?.length) {
+    // Get recent games for this team
+    const recentGames = await getTeamRecentGames(teamId, s).catch(() => []);
+    const playerMap = new Map();
+    
+    // Get player stats from each game (need to fetch both game and player stats)
+    for (const game of recentGames.slice(0, 5)) {
+      try {
+        // Get player statistics - separate endpoint
+        const playerStats = await up(`/games/${game.id}/players/statistics`).catch(() => []);
+        if (!playerStats || !playerStats.length) continue;
+        
+        for (const ps of playerStats) {
+          const playerTeamId = ps.team?.id;
+          const playerTeamIdStr = String(playerTeamId ?? '');
+          const teamIdStr = String(teamId);
+          
+          if (playerTeamIdStr === teamIdStr || String(ps.teamId) === teamIdStr) {
+            const pid = ps.playerId ?? ps.id;
+            if (pid && !playerMap.has(pid)) {
+              // Handle position which can be string or object
+              let pos = ps.position;
+              if (pos && typeof pos === 'object') {
+                pos = pos.name ?? pos.fullName ?? null;
+              }
+              playerMap.set(pid, {
+                id: pid,
+                firstName: ps.firstName,
+                lastName: ps.lastName,
+                position: pos,
+                jerseyNumber: ps.jerseyNumber,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore errors for individual games
+      }
+    }
+    
+    if (playerMap.size) {
+      const result = Array.from(playerMap.values()).map(p => ({
+        id: p.id,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        position: p.position,
+        jerseyNumber: p.jerseyNumber,
+        photo: img.player(p.id),
+      }));
+      teamPlayersCache.set(cacheKey, { timestamp: Date.now(), players: result });
+      return result;
+    }
+  }
+  
+  const result = arr(raw).map(p => ({
     id: p.id, firstName: p.firstName, lastName: p.lastName,
     position: p.position?.name ?? (typeof p.position === 'string' ? p.position : null),
     jerseyNumber: p.jerseyNumber ?? null,
     photo: img.player(p.id),
   }));
+  
+  if (result.length) {
+    teamPlayersCache.set(cacheKey, { timestamp: Date.now(), players: result });
+  }
+  
+  return result;
 }
 
 async function getTeamRecentGames(teamId, siteId) {
@@ -334,13 +410,22 @@ async function getTeamStats(teamId, siteId) {
   const s = siteId ? resolveSite(siteId) : 'ligaplus';
   const t = await getDefaultTournament(siteId || 'ligaplus').catch(() => null);
   if (!t?.id) return {};
-  const stats = await up(`/sites/${s}/tournaments/${t.id}/teams/${teamId}/statistics`).catch(() => ({}));
+  
+  // Try standings endpoint which has team stats
+  const raw = await up(`/sites/${s}/tournaments/${t.id}/positions-table`).catch(() => null);
+  if (!raw) return {};
+  
+  // Find team in standings data
+  const allRows = Object.values(raw.table ?? {}).flat();
+  const teamRow = allRows.find(r => r.team?.id === teamId);
+  const stats = teamRow?.teamStatistics ?? {};
+  
   return {
-    played: stats.gamesPlayed ?? stats.played ?? 0,
-    won: stats.gamesWon ?? stats.won ?? 0,
-    drawn: stats.gamesDraw ?? stats.drawn ?? 0,
-    lost: stats.gamesLost ?? stats.lost ?? 0,
-    goalsFor: stats.goalsInFavor ?? stats.goalsFor ?? 0,
+    played: stats.gamesPlayed ?? 0,
+    won: stats.gamesWon ?? 0,
+    drawn: stats.gamesDraw ?? 0,
+    lost: stats.gamesLost ?? 0,
+    goalsFor: stats.goalsInFavor ?? 0,
     goalsAgainst: stats.goalsAgainst ?? 0,
   };
 }
