@@ -1344,45 +1344,55 @@ async function openTeamDetail(teamId, site) {
       api(`/api/teams/${teamId}/games/upcoming?site=${s}`).catch(() => []),
       api(`/api/teams/${teamId}/stats?site=${s}`).catch(() => ({})),
     ]);
-    content.innerHTML = renderTeamOverlay(team, squad, recentGames, upcomingGames, stats);
-    content.querySelectorAll('[data-game-id]').forEach(n =>
-      n.addEventListener('click', () => {
-        closeOverlay('team-overlay');
-        openGameDetail(n.dataset.gameId);
-      }));
-    content.querySelectorAll('[data-player-id]').forEach(n =>
-      n.addEventListener('click', () => {
-        closeOverlay('team-overlay');
-        openPlayerDetail(n.dataset.playerId, league);
-      }));
-  } catch(e) {
+    renderTeamShell(team, squad, recentGames, upcomingGames, stats);
+  } catch (e) {
     console.error(e);
     content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load team.</div></div>';
   }
 }
 
-function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
-  if (!team) return '<div class="empty-state"><div class="empty-msg">Team not found.</div></div>';
+function renderTeamShell(team, squad, recentGames, upcomingGames, stats) {
+  const content = document.getElementById('team-detail-content');
+  if (!team) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Team not found.</div></div>';
+    return;
+  }
 
-  const posLabel = { 'POR': 'GK', 'DEF': 'DEF', 'MED': 'MID', 'DEL': 'FWD' };
-  const posName = { 'POR': 'Goalkeepers', 'DEF': 'Defenders', 'MED': 'Midfielders', 'DEL': 'Forwards' };
+  const posLabel = { POR: 'GK', DEF: 'DEF', MED: 'MID', DEL: 'FWD' };
+  const posName = { POR: 'Goalkeepers', DEF: 'Defenders', MED: 'Midfielders', DEL: 'Forwards' };
 
   const last5 = recentGames.slice(0, 5).reverse();
-  const formHtml = last5.length ? `
+  const formBadges = last5.map(g => {
+    const isHome = g.home.id === team.id;
+    const myScore = isHome ? g.home.score : g.away.score;
+    const oppScore = isHome ? g.away.score : g.home.score;
+    if (myScore === null || oppScore === null) return '';
+    const r = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+    return `<span class="team-form-badge ${r.toLowerCase()}">${r}</span>`;
+  }).join('');
+  const formHtml = formBadges ? `
     <div class="team-form-row">
       <span class="team-form-label">Form</span>
-      <div class="team-form-badges">
-        ${last5.map(g => {
-          const isHome = g.home.id === team.id;
-          const myScore = isHome ? g.home.score : g.away.score;
-          const oppScore = isHome ? g.away.score : g.home.score;
-          if (myScore === null || oppScore === null) return '';
-          const result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
-          return `<span class="team-form-badge ${result.toLowerCase()}">${result}</span>`;
+      <div class="team-form-badges">${formBadges}</div>
+    </div>` : '';
+
+  const s = stats || {};
+  const goalDiff = (s.goalsFor || 0) - (s.goalsAgainst || 0);
+  const hasStats = s.played || s.won || s.drawn || s.lost;
+  const statsHtml = hasStats ? `
+    <div class="team-section">
+      <div class="team-section-title">Season Stats</div>
+      <div class="team-stats-grid">
+        ${['Played','Wins','Draws','Losses','GF','GA'].map((label, i) => {
+          const vals = [s.played || 0, s.won || 0, s.drawn || 0, s.lost || 0, s.goalsFor || 0, s.goalsAgainst || 0];
+          return `<div class="team-stat-card"><div class="team-stat-val">${vals[i]}</div><div class="team-stat-label">${label}</div></div>`;
         }).join('')}
+        <div class="team-stat-card wide">
+          <div class="team-stat-val ${goalDiff > 0 ? 'pos' : goalDiff < 0 ? 'neg' : ''}">${goalDiff > 0 ? '+' : ''}${goalDiff}</div>
+          <div class="team-stat-label">Goal Diff</div>
+        </div>
       </div>
-    </div>
-  ` : '';
+    </div>` : '';
 
   const upcomingHtml = upcomingGames.length ? `
     <div class="team-section">
@@ -1390,21 +1400,18 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
       <div class="team-matches-list">
         ${upcomingGames.map(g => {
           const isHome = g.home.id === team.id;
-          return `
-            <div class="team-match-row" data-game-id="${g.id}">
-              <div class="team-match-date">${fmtDate(g.date)}</div>
-              <div class="team-match-teams">
-                <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
-                <span>vs</span>
-                <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
-              </div>
-              <div class="team-match-time">${fmtTime(g.date)}</div>
+          return `<div class="team-match-row" data-game-id="${g.id}">
+            <div class="team-match-date">${fmtDate(g.date)}</div>
+            <div class="team-match-teams">
+              <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
+              <span>vs</span>
+              <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
             </div>
-          `;
+            <div class="team-match-time">${fmtTime(g.date)}</div>
+          </div>`;
         }).join('')}
       </div>
-    </div>
-  ` : '';
+    </div>` : '';
 
   const gamesHtml = recentGames.length ? `
     <div class="team-section">
@@ -1414,26 +1421,20 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
           const isHome = g.home.id === team.id;
           const myScore = isHome ? g.home.score : g.away.score;
           const oppScore = isHome ? g.away.score : g.home.score;
-          let result = null;
-          if (myScore !== null && oppScore !== null) {
-            result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
-          }
-          return `
-            <div class="team-match-row" data-game-id="${g.id}">
-              <div class="team-match-date">${fmtDate(g.date)}</div>
-              <div class="team-match-teams">
-                <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
-                <span>vs</span>
-                <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
-              </div>
-              <div class="team-match-score">${myScore !== null ? myScore + ' - ' + oppScore : '—'}</div>
-              ${result ? `<div class="team-match-result ${result.toLowerCase()}">${result}</div>` : ''}
+          const r = (myScore !== null && oppScore !== null) ? (myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D') : null;
+          return `<div class="team-match-row" data-game-id="${g.id}">
+            <div class="team-match-date">${fmtDate(g.date)}</div>
+            <div class="team-match-teams">
+              <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
+              <span>vs</span>
+              <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
             </div>
-          `;
+            <div class="team-match-score">${myScore !== null ? myScore + ' - ' + oppScore : '—'}</div>
+            ${r ? `<div class="team-match-result ${r.toLowerCase()}">${r}</div>` : ''}
+          </div>`;
         }).join('')}
       </div>
-    </div>
-  ` : '';
+    </div>` : '';
 
   const squadByPos = squad.reduce((acc, p) => {
     const pos = posLabel[p.position] || p.position || 'OTH';
@@ -1441,7 +1442,6 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
     acc[pos].push(p);
     return acc;
   }, {});
-
   const posOrder = ['POR', 'DEF', 'MED', 'DEL'];
   const squadHtml = squad.length ? `
     <div class="team-section">
@@ -1449,9 +1449,8 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
       ${posOrder.flatMap(pos => {
         const players = squadByPos[pos];
         if (!players?.length) return [];
-        return [
-          `<div class="team-pos-label">${posName[pos] || pos}</div>`,
-          `<div class="team-squad-list">${players.map(p => `
+        return `<div class="team-pos-label">${posName[pos] || pos}</div>
+          <div class="team-squad-list">${players.map(p => `
             <div class="team-player-row" data-player-id="${p.id}">
               <img class="team-player-photo" src="${playerPhoto(p.id)}" alt="${p.firstName}" onerror="this.src='${playerPhoto('default')}'">
               <div class="team-player-info">
@@ -1459,51 +1458,11 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
                 <div class="team-player-meta">${p.jerseyNumber ? '#' + p.jerseyNumber : ''}</div>
               </div>
               ${p.jerseyNumber ? `<div class="team-player-number">${p.jerseyNumber}</div>` : ''}
-            </div>`).join('')}</div>`
-        ];
+            </div>`).join('')}</div>`;
       }).join('')}
-    </div>
-  ` : '';
+    </div>` : '';
 
-  const statsData = stats || {};
-  const goalDiff = (statsData.goalsFor || 0) - (statsData.goalsAgainst || 0);
-  const statsHtml = (statsData.played || statsData.won || statsData.drawn || statsData.lost) ? `
-    <div class="team-section">
-      <div class="team-section-title">Season Stats</div>
-      <div class="team-stats-grid">
-        <div class="team-stat-card">
-          <div class="team-stat-val">${statsData.played || 0}</div>
-          <div class="team-stat-label">Played</div>
-        </div>
-        <div class="team-stat-card">
-          <div class="team-stat-val">${statsData.won || 0}</div>
-          <div class="team-stat-label">Wins</div>
-        </div>
-        <div class="team-stat-card">
-          <div class="team-stat-val">${statsData.drawn || 0}</div>
-          <div class="team-stat-label">Draws</div>
-        </div>
-        <div class="team-stat-card">
-          <div class="team-stat-val">${statsData.lost || 0}</div>
-          <div class="team-stat-label">Losses</div>
-        </div>
-        <div class="team-stat-card">
-          <div class="team-stat-val">${statsData.goalsFor || 0}</div>
-          <div class="team-stat-label">GF</div>
-        </div>
-        <div class="team-stat-card">
-          <div class="team-stat-val">${statsData.goalsAgainst || 0}</div>
-          <div class="team-stat-label">GA</div>
-        </div>
-        <div class="team-stat-card wide">
-          <div class="team-stat-val ${goalDiff > 0 ? 'pos' : goalDiff < 0 ? 'neg' : ''}">${goalDiff > 0 ? '+' : ''}${goalDiff}</div>
-          <div class="team-stat-label">Goal Diff</div>
-        </div>
-      </div>
-    </div>
-  ` : '';
-
-  return `
+  content.innerHTML = `
     <div class="detail-fade-in">
       <div class="team-accent-bar"></div>
       <div class="team-header">
@@ -1519,6 +1478,17 @@ function renderTeamOverlay(team, squad, recentGames, upcomingGames, stats) {
       ${gamesHtml}
       ${squadHtml}
     </div>`;
+
+  content.querySelectorAll('[data-game-id]').forEach(n =>
+    n.addEventListener('click', () => {
+      closeOverlay('team-overlay');
+      openGameDetail(n.dataset.gameId);
+    }));
+  content.querySelectorAll('[data-player-id]').forEach(n =>
+    n.addEventListener('click', () => {
+      closeOverlay('team-overlay');
+      openPlayerDetail(n.dataset.playerId, league);
+    }));
 }
 
 // ─── NEWS DETAIL ──────────────────────────────────────────────────────────────

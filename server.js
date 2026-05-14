@@ -286,16 +286,15 @@ async function getNewsArticle(id) {
 }
 
 async function getTeam(teamId, siteId) {
+  try {
+    const data = await up(`/teams/${teamId}`);
+    if (data) return normalizeTeam(data);
+  } catch {}
   if (siteId) {
     const teams = await getTeams(siteId);
     return teams.find(t => t.id === teamId) ?? null;
   }
-  try {
-    const data = await up(`/teams/${teamId}`);
-    return data ? normalizeTeam(data) : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 async function getTeamSquad(teamId, siteId) {
