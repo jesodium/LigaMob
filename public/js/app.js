@@ -591,10 +591,7 @@ async function loadStandings() {
     document.getElementById('view-standings').querySelectorAll('[data-player-id]').forEach(node => {
       node.addEventListener('click', () => openPlayerDetail(node.dataset.playerId, league));
     });
-    // Bind team clicks in standings
-    document.getElementById('view-standings').querySelectorAll('[data-team-id]').forEach(node => {
-      node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
-    });
+
   } catch(e) { console.error(e); fail('view-standings'); }
 }
 
@@ -773,13 +770,7 @@ function renderGameDetailShell(g) {
       renderGDBody(g);
     });
   });
-  document.querySelectorAll('#game-detail-content [data-team-id]').forEach(n => {
-    n.addEventListener('click', e => {
-      e.stopPropagation();
-      closeOverlay('game-overlay');
-      openTeamDetail(n.dataset.teamId, league);
-    });
-  });
+
   renderGDBody(g);
 }
 
@@ -1193,12 +1184,7 @@ async function openPlayerDetail(playerId, site) {
         closeOverlay('player-overlay');
         openGameDetail(n.dataset.gameId);
       }));
-    content.querySelectorAll('[data-team-id]').forEach(n =>
-      n.addEventListener('click', e => {
-        e.stopPropagation();
-        closeOverlay('player-overlay');
-        openTeamDetail(n.dataset.teamId, league);
-      }));
+
   } catch(e) {
     console.error(e);
     content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load player.</div></div>';
@@ -1330,167 +1316,6 @@ function renderPlayerOverlay(p, seasonArr, history, awards, records) {
     </div>`;
 }
 
-// ─── TEAM DETAIL ──────────────────────────────────────────────────────────────
-async function openTeamDetail(teamId, site) {
-  const content = document.getElementById('team-detail-content');
-  content.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
-  openOverlay('team-overlay');
-  const s = site || league;
-  try {
-    const [team, squad, recentGames, upcomingGames, stats] = await Promise.all([
-      api(`/api/teams/${teamId}?site=${s}`).catch(() => null),
-      api(`/api/teams/${teamId}/squad?site=${s}`).catch(() => []),
-      api(`/api/teams/${teamId}/games/recent?site=${s}`).catch(() => []),
-      api(`/api/teams/${teamId}/games/upcoming?site=${s}`).catch(() => []),
-      api(`/api/teams/${teamId}/stats?site=${s}`).catch(() => ({})),
-    ]);
-    renderTeamShell(team, squad, recentGames, upcomingGames, stats);
-  } catch (e) {
-    console.error(e);
-    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load team.</div></div>';
-  }
-}
-
-function renderTeamShell(team, squad, recentGames, upcomingGames, stats) {
-  const content = document.getElementById('team-detail-content');
-  if (!team) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Team not found.</div></div>';
-    return;
-  }
-
-  const posLabel = { POR: 'GK', DEF: 'DEF', MED: 'MID', DEL: 'FWD' };
-  const posName = { POR: 'Goalkeepers', DEF: 'Defenders', MED: 'Midfielders', DEL: 'Forwards' };
-
-  const last5 = recentGames.slice(0, 5).reverse();
-  const formBadges = last5.map(g => {
-    const isHome = g.home.id === team.id;
-    const myScore = isHome ? g.home.score : g.away.score;
-    const oppScore = isHome ? g.away.score : g.home.score;
-    if (myScore === null || oppScore === null) return '';
-    const r = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
-    return `<span class="team-form-badge ${r.toLowerCase()}">${r}</span>`;
-  }).join('');
-  const formHtml = formBadges ? `
-    <div class="team-form-row">
-      <span class="team-form-label">Form</span>
-      <div class="team-form-badges">${formBadges}</div>
-    </div>` : '';
-
-  const s = stats || {};
-  const goalDiff = (s.goalsFor || 0) - (s.goalsAgainst || 0);
-  const hasStats = s.played || s.won || s.drawn || s.lost;
-  const statsHtml = hasStats ? `
-    <div class="team-section">
-      <div class="team-section-title">Season Stats</div>
-      <div class="team-stats-grid">
-        ${['Played','Wins','Draws','Losses','GF','GA'].map((label, i) => {
-          const vals = [s.played || 0, s.won || 0, s.drawn || 0, s.lost || 0, s.goalsFor || 0, s.goalsAgainst || 0];
-          return `<div class="team-stat-card"><div class="team-stat-val">${vals[i]}</div><div class="team-stat-label">${label}</div></div>`;
-        }).join('')}
-        <div class="team-stat-card wide">
-          <div class="team-stat-val ${goalDiff > 0 ? 'pos' : goalDiff < 0 ? 'neg' : ''}">${goalDiff > 0 ? '+' : ''}${goalDiff}</div>
-          <div class="team-stat-label">Goal Diff</div>
-        </div>
-      </div>
-    </div>` : '';
-
-  const upcomingHtml = upcomingGames.length ? `
-    <div class="team-section">
-      <div class="team-section-title">Upcoming</div>
-      <div class="team-matches-list">
-        ${upcomingGames.map(g => {
-          const isHome = g.home.id === team.id;
-          return `<div class="team-match-row" data-game-id="${g.id}">
-            <div class="team-match-date">${fmtDate(g.date)}</div>
-            <div class="team-match-teams">
-              <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
-              <span>vs</span>
-              <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
-            </div>
-            <div class="team-match-time">${fmtTime(g.date)}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>` : '';
-
-  const gamesHtml = recentGames.length ? `
-    <div class="team-section">
-      <div class="team-section-title">Recent Results</div>
-      <div class="team-matches-list">
-        ${recentGames.map(g => {
-          const isHome = g.home.id === team.id;
-          const myScore = isHome ? g.home.score : g.away.score;
-          const oppScore = isHome ? g.away.score : g.home.score;
-          const r = (myScore !== null && oppScore !== null) ? (myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D') : null;
-          return `<div class="team-match-row" data-game-id="${g.id}">
-            <div class="team-match-date">${fmtDate(g.date)}</div>
-            <div class="team-match-teams">
-              <img src="${g.home.logo}" alt="" onerror="this.style.opacity='0.2'">
-              <span>vs</span>
-              <img src="${g.away.logo}" alt="" onerror="this.style.opacity='0.2'">
-            </div>
-            <div class="team-match-score">${myScore !== null ? myScore + ' - ' + oppScore : '—'}</div>
-            ${r ? `<div class="team-match-result ${r.toLowerCase()}">${r}</div>` : ''}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>` : '';
-
-  const squadByPos = squad.reduce((acc, p) => {
-    const pos = posLabel[p.position] || p.position || 'OTH';
-    if (!acc[pos]) acc[pos] = [];
-    acc[pos].push(p);
-    return acc;
-  }, {});
-  const posOrder = ['POR', 'DEF', 'MED', 'DEL'];
-  const squadHtml = squad.length ? `
-    <div class="team-section">
-      <div class="team-section-title">Squad</div>
-      ${posOrder.flatMap(pos => {
-        const players = squadByPos[pos];
-        if (!players?.length) return [];
-        return `<div class="team-pos-label">${posName[pos] || pos}</div>
-          <div class="team-squad-list">${players.map(p => `
-            <div class="team-player-row" data-player-id="${p.id}">
-              <img class="team-player-photo" src="${playerPhoto(p.id)}" alt="${p.firstName}" onerror="this.src='${playerPhoto('default')}'">
-              <div class="team-player-info">
-                <div class="team-player-name">${p.firstName} ${p.lastName}</div>
-                <div class="team-player-meta">${p.jerseyNumber ? '#' + p.jerseyNumber : ''}</div>
-              </div>
-              ${p.jerseyNumber ? `<div class="team-player-number">${p.jerseyNumber}</div>` : ''}
-            </div>`).join('')}</div>`;
-      }).join('')}
-    </div>` : '';
-
-  content.innerHTML = `
-    <div class="detail-fade-in">
-      <div class="team-accent-bar"></div>
-      <div class="team-header">
-        <div class="team-header-logo">
-          <img src="${team.logo}" alt="${team.name}" onerror="this.style.opacity='0.3'">
-        </div>
-        <div class="team-header-name">${team.name}</div>
-        <div class="team-header-sub">${team.longName || ''}</div>
-        ${formHtml}
-      </div>
-      ${statsHtml}
-      ${upcomingHtml}
-      ${gamesHtml}
-      ${squadHtml}
-    </div>`;
-
-  content.querySelectorAll('[data-game-id]').forEach(n =>
-    n.addEventListener('click', () => {
-      closeOverlay('team-overlay');
-      openGameDetail(n.dataset.gameId);
-    }));
-  content.querySelectorAll('[data-player-id]').forEach(n =>
-    n.addEventListener('click', () => {
-      closeOverlay('team-overlay');
-      openPlayerDetail(n.dataset.playerId, league);
-    }));
-}
-
 // ─── NEWS DETAIL ──────────────────────────────────────────────────────────────
 async function openNewsDetail(newsId) {
   const content = document.getElementById('news-detail-content');
@@ -1594,24 +1419,7 @@ function bindClickable(containerId) {
     node.addEventListener('click', () => openGameDetail(node.dataset.gameId));
     node.addEventListener('keydown', e => { if (e.key === 'Enter') openGameDetail(node.dataset.gameId); });
   });
-  el.querySelectorAll('.match-row [data-team-id]').forEach(node => {
-    node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
-  });
-  el.querySelectorAll('.result-chip [data-team-id]').forEach(node => {
-    node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
-  });
-  el.querySelectorAll('.hero-team[data-team-id]').forEach(node => {
-    node.addEventListener('click', e => { e.stopPropagation(); openTeamDetail(node.dataset.teamId, league); });
-  });
-}
 
-function bindTeamClickable(containerId) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.querySelectorAll('[data-team-id]').forEach(node => {
-    node.addEventListener('click', () => openTeamDetail(node.dataset.teamId, league));
-    node.addEventListener('keydown', e => { if (e.key === 'Enter') openTeamDetail(node.dataset.teamId, league); });
-  });
 }
 
 function bindNewsClickable(containerId) {
@@ -1646,7 +1454,6 @@ async function loadTeams() {
       </div>`).join('');
     html += '</div>';
     document.getElementById('view-teams').innerHTML = fadedHtml(html);
-    bindTeamClickable('view-teams');
   } catch(e) { console.error(e); fail('view-teams'); }
 }
 
@@ -1692,8 +1499,6 @@ document.getElementById('game-scrim').addEventListener('click',   () => closeOve
 document.getElementById('game-close-pill').addEventListener('click',   () => closeOverlay('game-overlay'));
 document.getElementById('player-scrim').addEventListener('click', () => closeOverlay('player-overlay'));
 document.getElementById('player-close-pill').addEventListener('click', () => closeOverlay('player-overlay'));
-document.getElementById('team-scrim').addEventListener('click', () => closeOverlay('team-overlay'));
-document.getElementById('team-close-pill').addEventListener('click', () => closeOverlay('team-overlay'));
 document.getElementById('news-scrim').addEventListener('click', () => closeOverlay('news-overlay'));
 document.getElementById('news-close-pill').addEventListener('click', () => closeOverlay('news-overlay'));
 
