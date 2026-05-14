@@ -587,10 +587,11 @@ async function loadStandings() {
     html += '</div>';
     document.getElementById('view-standings').innerHTML = fadedHtml(html);
     
-    // Bind player clicks in standings
+    // Bind player and team clicks in standings
     document.getElementById('view-standings').querySelectorAll('[data-player-id]').forEach(node => {
       node.addEventListener('click', () => openPlayerDetail(node.dataset.playerId, league));
     });
+    bindTeamClickable('view-standings');
 
   } catch(e) { console.error(e); fail('view-standings'); }
 }
@@ -768,6 +769,14 @@ function renderGameDetailShell(g) {
       t.classList.add('active');
       gameDetailTab = t.dataset.gtab;
       renderGDBody(g);
+    });
+  });
+
+  document.querySelectorAll('#game-detail-content [data-team-id]').forEach(n => {
+    n.addEventListener('click', e => {
+      e.stopPropagation();
+      closeOverlay('game-overlay');
+      openTeamDetail(n.dataset.teamId);
     });
   });
 
@@ -1184,6 +1193,12 @@ async function openPlayerDetail(playerId, site) {
         closeOverlay('player-overlay');
         openGameDetail(n.dataset.gameId);
       }));
+    content.querySelectorAll('[data-team-id]').forEach(n =>
+      n.addEventListener('click', e => {
+        e.stopPropagation();
+        closeOverlay('player-overlay');
+        openTeamDetail(n.dataset.teamId);
+      }));
 
   } catch(e) {
     console.error(e);
@@ -1419,7 +1434,24 @@ function bindClickable(containerId) {
     node.addEventListener('click', () => openGameDetail(node.dataset.gameId));
     node.addEventListener('keydown', e => { if (e.key === 'Enter') openGameDetail(node.dataset.gameId); });
   });
+  el.querySelectorAll('[data-team-id]').forEach(node => {
+    node.addEventListener('click', e => {
+      e.stopPropagation();
+      openTeamDetail(node.dataset.teamId);
+    });
+    node.addEventListener('keydown', e => { if (e.key === 'Enter') openTeamDetail(node.dataset.teamId); });
+  });
+}
 
+function bindTeamClickable(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.querySelectorAll('[data-team-id]').forEach(node => {
+    node.addEventListener('click', e => {
+      e.stopPropagation();
+      openTeamDetail(node.dataset.teamId);
+    });
+  });
 }
 
 function bindNewsClickable(containerId) {
@@ -1454,7 +1486,198 @@ async function loadTeams() {
       </div>`).join('');
     html += '</div>';
     document.getElementById('view-teams').innerHTML = fadedHtml(html);
+    bindTeamClickable('view-teams');
   } catch(e) { console.error(e); fail('view-teams'); }
+}
+
+// ─── TEAM DETAIL ───────────────────────────────────────────────────────────────
+let teamDetailTab = 'overview';
+
+async function openTeamDetail(teamId) {
+  const content = document.getElementById('team-detail-content');
+  content.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+  openOverlay('team-overlay');
+  teamDetailTab = 'overview';
+  try {
+    const [team, squad, stats, recent] = await Promise.all([
+      api(`/api/teams/${teamId}?site=${league}`),
+      api(`/api/teams/${teamId}/squad?site=${league}`).catch(() => []),
+      api(`/api/teams/${teamId}/stats?site=${league}`).catch(() => ({})),
+      api(`/api/teams/${teamId}/games/recent?site=${league}`).catch(() => []),
+    ]);
+    renderTeamDetailShell(team, squad, stats, recent);
+  } catch(e) {
+    console.error(e);
+    content.innerHTML = '<div class="empty-state"><div class="empty-msg">Failed to load team.</div></div>';
+  }
+}
+
+function renderTeamDetailShell(team, squad, stats, recent) {
+  document.getElementById('team-detail-content').innerHTML = `
+    <div class="detail-fade-in">
+      <div class="gd-header">
+        <div class="gd-teams">
+          <div class="gd-team">
+            <img class="gd-logo" src="${team.logo}" alt="" onerror="this.style.opacity='.2'">
+            <div class="gd-team-name">${team.name}</div>
+          </div>
+          <div class="gd-score-center">
+            <div class="gd-score" style="font-size:24px;color:var(--text-2)">${team.longName || team.name}</div>
+          </div>
+          <div class="gd-team"></div>
+        </div>
+      </div>
+      <div class="gd-tabs-wrap">
+        <div class="gd-tabs" id="td-tabs">
+          <div class="gd-tab active" data-ttab="overview">Overview</div>
+          <div class="gd-tab" data-ttab="squad">Squad</div>
+          <div class="gd-tab" data-ttab="stats">Stats</div>
+          <div class="gd-tab" data-ttab="matches">Matches</div>
+        </div>
+      </div>
+      <div class="gd-body" id="td-body"></div>
+    </div>`;
+
+  document.querySelectorAll('#td-tabs .gd-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('#td-tabs .gd-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      teamDetailTab = t.dataset.ttab;
+      renderTeamBody(team, squad, stats, recent);
+    });
+  });
+
+  renderTeamBody(team, squad, stats, recent);
+}
+
+function renderTeamBody(team, squad, stats, recent) {
+  const body = document.getElementById('td-body');
+  if (!body) return;
+  
+  if (teamDetailTab === 'overview') body.innerHTML = fadedHtml(renderTeamOverview(team, stats, recent));
+  else if (teamDetailTab === 'squad') body.innerHTML = fadedHtml(renderTeamSquad(squad));
+  else if (teamDetailTab === 'stats') body.innerHTML = fadedHtml(renderTeamStats(stats));
+  else if (teamDetailTab === 'matches') body.innerHTML = fadedHtml(renderTeamMatches(recent, team.id));
+
+  body.style.animation = 'none';
+  body.offsetHeight;
+  body.style.animation = '';
+  
+  body.querySelectorAll('[data-player-id]').forEach(n =>
+    n.addEventListener('click', () => openPlayerDetail(n.dataset.playerId, league)));
+  body.querySelectorAll('[data-game-id]').forEach(n =>
+    n.addEventListener('click', () => openGameDetail(n.dataset.gameId)));
+}
+
+function renderTeamOverview(team, stats, recent) {
+  const gd = (stats.goalsFor || 0) - (stats.goalsAgainst || 0);
+  const gdClass = gd > 0 ? 'pos' : gd < 0 ? 'neg' : '';
+  
+  const form = recent.filter(g => g.status === 'final').slice(0, 5).reverse().map(g => {
+    const isHome = String(g.home.id) === String(team.id);
+    const myScore = isHome ? g.home.score : g.away.score;
+    const oppScore = isHome ? g.away.score : g.home.score;
+    return myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+  });
+  
+  let formHtml = '';
+  if (form.length) {
+    const colors = { W: 'var(--accent)', L: 'var(--neg)', D: 'var(--text-3)' };
+    formHtml = `<div class="gd-form-row"><span class="gd-form-label">Form</span><div class="gd-form-badges">${form.map(r => `<span class="gd-form-badge" style="background:${colors[r]}20;color:${colors[r]}">${r}</span>`).join('')}</div></div>`;
+  }
+
+  return `
+    <div class="td-overview">
+      <div class="gd-stat-row">
+        <div class="gd-stat-pill"><div class="gd-stat-val">${stats.played ?? 0}</div><div class="gd-stat-lbl">Played</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val" style="color:var(--accent)">${stats.won ?? 0}</div><div class="gd-stat-lbl">Won</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val">${stats.drawn ?? 0}</div><div class="gd-stat-lbl">Drawn</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val" style="color:var(--neg)">${stats.lost ?? 0}</div><div class="gd-stat-lbl">Lost</div></div>
+      </div>
+      <div class="gd-stat-row" style="margin-top:var(--s-2)">
+        <div class="gd-stat-pill"><div class="gd-stat-val" style="color:var(--accent)">${stats.goalsFor ?? 0}</div><div class="gd-stat-lbl">Goals For</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val ${gdClass}">${stats.goalsAgainst ?? 0}</div><div class="gd-stat-lbl">Goals Against</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val ${gdClass}">${gd > 0 ? '+' : ''}${gd}</div><div class="gd-stat-lbl">Goal Diff</div></div>
+      </div>
+      ${formHtml}
+    </div>`;
+}
+
+function renderTeamSquad(squad) {
+  if (!squad.length) return '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-msg">No squad data</div></div>';
+  
+  const posMap = { 'Goalkeeper': 'POR', 'Portero': 'POR', 'Defender': 'DEF', 'Defensa': 'DEF', 'Midfielder': 'MED', 'Mediocampo': 'MED', 'Forward': 'DEL', 'Delantero': 'DEL' };
+  const groups = { POR: [], DEF: [], MED: [], DEL: [] };
+  
+  for (const p of squad) {
+    const key = posMap[p.position] || 'MED';
+    groups[key].push(p);
+  }
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => (a.jerseyNumber || 99) - (b.jerseyNumber || 99));
+  }
+  
+  const labels = { POR: 'Goalkeepers', DEF: 'Defenders', MED: 'Midfielders', DEL: 'Forwards' };
+  const posOrder = ['POR', 'DEF', 'MED', 'DEL'];
+  
+  let html = '<div class="pteam-block">';
+  for (const pos of posOrder) {
+    const players = groups[pos];
+    if (!players.length) continue;
+    html += `<div class="td-pos-label">${labels[pos]}</div>`;
+    html += players.map(p => `
+      <div class="prow" data-player-id="${p.id}" style="cursor:pointer">
+        <span class="prow-badge">${p.jerseyNumber || '—'}</span>
+        <img class="prow-photo" src="${playerPhoto(p.id)}" loading="lazy" onerror="this.src='${playerPhoto('default')}'">
+        <div class="prow-info">
+          <div class="prow-name">${p.firstName || ''} ${p.lastName || ''}</div>
+          <div class="prow-meta">${pos === 'POR' ? 'Goalkeeper' : pos === 'DEF' ? 'Defender' : pos === 'MED' ? 'Midfielder' : 'Forward'}</div>
+        </div>
+      </div>`).join('');
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderTeamStats(stats) {
+  return `
+    <div class="td-stats">
+      <div class="gd-stat-row">
+        <div class="gd-stat-pill"><div class="gd-stat-val">${stats.played ?? 0}</div><div class="gd-stat-lbl">Games</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val" style="color:var(--accent)">${stats.won ?? 0}</div><div class="gd-stat-lbl">Wins</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val" style="color:var(--text-3)">${stats.drawn ?? 0}</div><div class="gd-stat-lbl">Draws</div></div>
+        <div class="gd-stat-pill"><div class="gd-stat-val" style="color:var(--neg)">${stats.lost ?? 0}</div><div class="gd-stat-lbl">Losses</div></div>
+      </div>
+    </div>`;
+}
+
+function renderTeamMatches(games, teamId) {
+  if (!games.length) return '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-msg">No recent matches</div></div>';
+  
+  return games.map(g => {
+    const isHome = String(g.home.id) === String(teamId);
+    const myScore = isHome ? g.home.score : g.away.score;
+    const oppScore = isHome ? g.away.score : g.home.score;
+    const opponent = isHome ? g.away : g.home;
+    const result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+    const colors = { W: 'var(--accent)', L: 'var(--neg)', D: 'var(--text-3)' };
+    
+    return `
+      <div class="match-row" data-game-id="${g.id}">
+        <div class="mrow-status ${g.status === 'final' ? 'ft' : g.status === 'live' ? 'live' : 'soon'}">${g.status === 'final' ? 'FT' : g.status === 'live' ? 'LIVE' : fmtTime(g.date)}</div>
+        <div class="mrow-home">
+          <span class="mrow-name">${g.home.name}</span>
+          <img class="mrow-logo" src="${g.home.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
+        </div>
+        <div class="mrow-center">
+          <div class="mrow-score">${g.home.score ?? '—'} - ${g.away.score ?? '—'}</div>
+        </div>
+        <div class="mrow-away">
+          <img class="mrow-logo" src="${g.away.logo}" loading="lazy" alt="" onerror="this.style.opacity='.15'">
+          <span class="mrow-name">${g.away.name}</span>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ─── Tab nav ──────────────────────────────────────────────────────────────────
@@ -1501,6 +1724,8 @@ document.getElementById('player-scrim').addEventListener('click', () => closeOve
 document.getElementById('player-close-pill').addEventListener('click', () => closeOverlay('player-overlay'));
 document.getElementById('news-scrim').addEventListener('click', () => closeOverlay('news-overlay'));
 document.getElementById('news-close-pill').addEventListener('click', () => closeOverlay('news-overlay'));
+document.getElementById('team-scrim').addEventListener('click', () => closeOverlay('team-overlay'));
+document.getElementById('team-close-pill').addEventListener('click', () => closeOverlay('team-overlay'));
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (async () => {

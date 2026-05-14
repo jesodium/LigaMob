@@ -967,6 +967,18 @@ img { display: block; }
 }
 .gd-body { padding: var(--s-5) var(--s-7); }
 
+/* Team Detail */
+.gd-stat-row { display: flex; justify-content: center; gap: var(--s-4); padding: var(--s-2) 0; }
+.gd-stat-pill { background: var(--surface-2); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); text-align: center; min-width: 70px; }
+.gd-stat-val { font-size: 24px; font-weight: 700; color: var(--text); }
+.gd-stat-lbl { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+.gd-form-row { display: flex; align-items: center; gap: var(--s-3); margin-top: var(--s-4); justify-content: center; }
+.gd-form-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; font-weight: 600; }
+.gd-form-badges { display: flex; gap: 4px; }
+.gd-form-badge { font-size: 11px; font-weight: 700; width: 24px; height: 24px; border-radius: var(--r-xs); display: flex; align-items: center; justify-content: center; }
+.td-pos-label { font-size: 11px; font-weight: 700; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--s-3); margin-top: var(--s-4); }
+.td-pos-label:first-child { margin-top: 0; }
+
 /* ── Pitch ──────────────────────────────────────────────────────────────── */
 /* ── Pitch / Lineup ─────────────────────────────────────────────────────── */
 .pitch-wrapper { background: var(--surface-1); border-radius: var(--r-lg); overflow: hidden; }
